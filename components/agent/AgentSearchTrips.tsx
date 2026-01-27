@@ -56,9 +56,9 @@ export function AgentSearchTrips({ agentId, onSelectTrip }: AgentSearchTripsProp
           }))
         }
       } catch (error) {
-        console.error('Failed to parse agentTripSearch from localStorage:', error)
+        console.error('Failed to parse agentTripSearch from localStorage:', error);
       }
-    } catch {
+    };
       // ignore
     }
   }, [])
