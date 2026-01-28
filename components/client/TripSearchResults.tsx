@@ -27,6 +27,19 @@ interface Trip {
     origin: string
     destination: string
     duration?: number | null
+    stops?: Array<{
+      id: string
+      order: number
+      role: string
+      stop: {
+        id: string
+        name: string
+        city: {
+          id: string
+          name: string
+        }
+      }
+    }>
   }
   boardingMinutesBefore?: number
   bookings: Array<{ id: string }>
@@ -48,6 +61,12 @@ interface TripSearchResultsProps {
   displayCurrency?: DisplayCurrency
   outboundAvailability?: Availability[]
   returnAvailability?: Availability[]
+  passengerCounts?: {
+    adults: number
+    children: number
+    babies: number
+    seniors: number
+  }
 }
 
 function AvailabilityList({ availability, title, onSelect }: { availability: Availability[], title: string, onSelect: (date: string) => void }) {
@@ -82,7 +101,16 @@ function AvailabilityList({ availability, title, onSelect }: { availability: Ava
   )
 }
 
-function SelectableTripCard({ trip, displayCurrency, isSelected, onSelect, selectionMode }: SelectableTripCardProps) {
+interface SelectableTripCardProps {
+  trip: Trip
+  displayCurrency: DisplayCurrency
+  isSelected: boolean
+  onSelect: () => void
+  selectionMode: boolean
+  passengerCounts: { adults: number; children: number; babies: number; seniors: number }
+}
+
+function SelectableTripCard({ trip, displayCurrency, isSelected, onSelect, selectionMode, passengerCounts }: SelectableTripCardProps) {
   const occupiedSeats = trip.bookings.length
   const availableSeats = trip.bus.capacity - occupiedSeats
   const isVIP = trip.bus.seatType === 'VIP'
@@ -198,8 +226,15 @@ function SelectableTripCard({ trip, displayCurrency, isSelected, onSelect, selec
             <div className="text-sm font-medium text-gray-600">{trip.route.origin}</div>
           </div>
           <div className="flex-1 px-4 flex flex-col items-center">
-            <div className={`px-3 py-1 rounded-full text-xs font-bold ${isVIP ? 'bg-amber-100 text-amber-700' : 'bg-primary-100 text-primary-700'}`}>
-              {durationLabel}
+            <div className="flex items-center gap-2">
+              <div className={`px-3 py-1 rounded-full text-xs font-bold ${isVIP ? 'bg-amber-100 text-amber-700' : 'bg-primary-100 text-primary-700'}`}>
+                {durationLabel}
+              </div>
+              {(!trip.route.stops || trip.route.stops.length === 0) && (
+                <div className="px-2 py-1 rounded-full text-[10px] font-black bg-green-500 text-white uppercase tracking-wider">
+                  ✓ Ligne Directe
+                </div>
+              )}
             </div>
             <div className="w-full h-0.5 bg-gray-200 mt-2 relative">
               <div className={`absolute inset-0 ${isVIP ? 'bg-amber-400' : 'bg-primary-400'}`}></div>
@@ -210,6 +245,60 @@ function SelectableTripCard({ trip, displayCurrency, isSelected, onSelect, selec
             <div className="text-sm font-medium text-gray-600">{trip.route.destination}</div>
           </div>
         </div>
+
+        {/* Luggage Info */}
+        <div className="flex items-center gap-4 mb-4 px-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span>Bagages en soute: <span className="font-black">2 x 30kg</span></span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <span>Bagage cabine: <span className="font-black">10kg</span></span>
+          </div>
+        </div>
+
+        {/* Stopovers - Intermediate Stops */}
+        {trip.route.stops && trip.route.stops.length > 0 && (
+          <div className="mb-4 px-2">
+            <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="text-sm font-bold text-purple-900">
+                  {trip.route.stops.length} escale{trip.route.stops.length > 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {trip.route.stops.map((stop, idx) => (
+                  <div 
+                    key={stop.id}
+                    className="inline-flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-purple-200 text-xs font-semibold text-purple-700"
+                  >
+                    <span className="w-5 h-5 flex items-center justify-center bg-purple-100 text-purple-600 rounded-full text-[10px] font-black">
+                      {idx + 1}
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="font-bold">{stop.stop.name}</span>
+                    </div>
+                    <span className="text-purple-400">•</span>
+                    <span className="text-[10px] uppercase font-black text-purple-500">
+                      {stop.role === 'BOARDING' || stop.role === 'EMBARQUEMENT' ? '🔵 Embarquement' : 
+                       stop.role === 'ALIGHTING' || stop.role === 'DEBARQUEMENT' ? '🔴 Débarquement' : 
+                       '🟡 Arrêt'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Luggage Info */}
         <div className="flex items-center gap-4 mb-4 px-2">
@@ -263,7 +352,9 @@ function SelectableTripCard({ trip, displayCurrency, isSelected, onSelect, selec
         {!selectionMode && (
           <div className="mt-6 flex flex-col items-center gap-2">
             <Link
-              href={isTooLate ? '#' : `/trips/${trip.id}/book`}
+              href={isTooLate ? '#' : `/trips/${trip.id}/book?${new URLSearchParams(
+                Object.entries(passengerCounts).map(([key, value]) => [key, String(value)])
+              ).toString()}`}
               className={`w-full md:w-3/4 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all duration-300 ${isTooLate
                 ? 'bg-gray-400 cursor-not-allowed'
                 : isVIP
@@ -291,21 +382,14 @@ function SelectableTripCard({ trip, displayCurrency, isSelected, onSelect, selec
   )
 }
 
-interface SelectableTripCardProps {
-  trip: Trip
-  displayCurrency: DisplayCurrency
-  isSelected: boolean
-  onSelect: () => void
-  selectionMode: boolean
-}
-
 export function TripSearchResults({
   trips,
   returnTrips,
   isRoundTrip,
   displayCurrency = 'FC',
   outboundAvailability,
-  returnAvailability
+  returnAvailability,
+  passengerCounts = { adults: 1, children: 0, babies: 0, seniors: 0 }
 }: TripSearchResultsProps) {
   const router = useRouter()
   const [selectedOutbound, setSelectedOutbound] = useState<Trip | null>(null)
@@ -317,14 +401,22 @@ export function TripSearchResults({
     router.push(`${window.location.pathname}?${params.toString()}`)
   }
 
-  const totalPrice = (selectedOutbound?.price || 0) + (selectedReturn?.price || 0)
+  const totalPassengers = (passengerCounts.adults || 0) + (passengerCounts.children || 0) + (passengerCounts.seniors || 0);
+  const totalPrice = ((selectedOutbound?.price || 0) + (selectedReturn?.price || 0)) * totalPassengers;
   const canProceed = isRoundTrip ? (selectedOutbound && selectedReturn) : selectedOutbound
 
   const handleProceedToBooking = () => {
+    const passengerParams = new URLSearchParams({
+      adults: passengerCounts.adults.toString(),
+      children: passengerCounts.children.toString(),
+      babies: passengerCounts.babies.toString(),
+      seniors: passengerCounts.seniors.toString()
+    })
+    
     if (isRoundTrip && selectedOutbound && selectedReturn) {
-      router.push(`/trips/book-round-trip?outboundId=${selectedOutbound.id}&returnId=${selectedReturn.id}`)
+      router.push(`/trips/book-round-trip?outboundId=${selectedOutbound.id}&returnId=${selectedReturn.id}&${passengerParams.toString()}`)
     } else if (selectedOutbound) {
-      router.push(`/trips/${selectedOutbound.id}/book`)
+      router.push(`/trips/${selectedOutbound.id}/book?${passengerParams.toString()}`)
     }
   }
 
@@ -474,6 +566,7 @@ export function TripSearchResults({
                   isSelected={selectedOutbound?.id === trip.id}
                   onSelect={() => setSelectedOutbound(selectedOutbound?.id === trip.id ? null : trip)}
                   selectionMode={isRoundTrip || false}
+                  passengerCounts={passengerCounts}
                 />
               ))}
             </div>
@@ -518,6 +611,7 @@ export function TripSearchResults({
                     isSelected={selectedReturn?.id === trip.id}
                     onSelect={() => setSelectedReturn(selectedReturn?.id === trip.id ? null : trip)}
                     selectionMode={true}
+                    passengerCounts={passengerCounts}
                   />
                 ))}
               </div>

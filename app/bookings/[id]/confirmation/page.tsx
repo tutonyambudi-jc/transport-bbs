@@ -22,6 +22,16 @@ async function getBooking(id: string) {
       },
       seat: true,
       payment: true,
+      boardingStop: {
+        include: {
+          city: true,
+        },
+      },
+      alightingStop: {
+        include: {
+          city: true,
+        },
+      },
     },
   })
 
@@ -196,6 +206,30 @@ export default async function ConfirmationPage({
                       </div>
                     </div>
                   </div>
+
+                  {/* Intermediate Stops Information */}
+                  {(booking.boardingStop || booking.alightingStop) && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="grid grid-cols-2 gap-4">
+                        {booking.boardingStop && (
+                          <div>
+                            <div className="text-xs text-gray-500 uppercase font-bold mb-1">📍 Embarquement</div>
+                            <div className="text-sm font-semibold text-primary-700">
+                              {booking.boardingStop.name}
+                            </div>
+                          </div>
+                        )}
+                        {booking.alightingStop && (
+                          <div className={booking.boardingStop ? 'text-right' : ''}>
+                            <div className="text-xs text-gray-500 uppercase font-bold mb-1">📍 Débarquement</div>
+                            <div className="text-sm font-semibold text-primary-700">
+                              {booking.alightingStop.name}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* RETURN SECTION (IF APPLICABLE) */}
@@ -234,6 +268,30 @@ export default async function ConfirmationPage({
                         </div>
                       </div>
                     </div>
+
+                    {/* Intermediate Stops Information */}
+                    {(returnBooking.boardingStop || returnBooking.alightingStop) && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-2 gap-4">
+                          {returnBooking.boardingStop && (
+                            <div>
+                              <div className="text-xs text-gray-500 uppercase font-bold mb-1">📍 Embarquement</div>
+                              <div className="text-sm font-semibold text-green-700">
+                                {returnBooking.boardingStop.name}
+                              </div>
+                            </div>
+                          )}
+                          {returnBooking.alightingStop && (
+                            <div className={returnBooking.boardingStop ? 'text-right' : ''}>
+                              <div className="text-xs text-gray-500 uppercase font-bold mb-1">📍 Débarquement</div>
+                              <div className="text-sm font-semibold text-green-700">
+                                {returnBooking.alightingStop.name}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

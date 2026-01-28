@@ -84,9 +84,19 @@ export default async function AdminBusesPage() {
                       </td>
                       <td className="py-3 pr-4 text-gray-700">{b.amenities ?? '-'}</td>
                       <td className="py-3 pr-4">
-                        <Link href={`/admin/buses/${b.id}`} className="text-primary-600 hover:text-primary-800 font-medium text-sm">
-                          Modifier
-                        </Link>
+                        <div className="flex gap-2">
+                          <Link href={`/admin/buses/${b.id}`} className="text-primary-600 hover:text-primary-800 font-medium text-sm">
+                            Modifier
+                          </Link>
+                          {b._count.seats > 0 && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <Link href={`/admin/buses/${b.id}/seats`} className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                Sièges
+                              </Link>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

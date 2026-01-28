@@ -73,10 +73,10 @@ export function formatCurrency(amountXof: number, currency?: DisplayCurrency): s
     }).format(usd)
   }
 
-  // On veut afficher "FC" (pas "FC" ni "CFA") partout côté UI.
+  // Use a valid ISO currency for formatting (display as "FC" afterwards).
   const formatted = new Intl.NumberFormat('fr-FR', {
     style: 'currency',
-    currency: 'FC',
+    currency: 'XOF',
     maximumFractionDigits: 0,
   }).format(amountXof)
 

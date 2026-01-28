@@ -31,7 +31,20 @@ async function getTrips(origin: string, destination: string, date: string) {
     },
     include: {
       bus: true,
-      route: true,
+      route: {
+        include: {
+          stops: {
+            orderBy: { order: 'asc' },
+            include: {
+              stop: {
+                include: {
+                  city: true
+                }
+              }
+            }
+          }
+        }
+      },
       bookings: {
         where: {
           status: { in: ['CONFIRMED', 'PENDING'] },
@@ -48,7 +61,36 @@ async function getTrips(origin: string, destination: string, date: string) {
   return trips.filter((t) => {
     const ro = normalizeSearchText(t.route?.origin || '')
     const rd = normalizeSearchText(t.route?.destination || '')
-    return ro.includes(o) && rd.includes(d)
+    
+    // Vérifier correspondance origine/destination principales
+    const mainRouteMatch = ro.includes(o) && rd.includes(d)
+    
+    // Vérifier si origine/destination correspondent aux arrêts intermédiaires
+    let stopMatch = false
+    if (t.route?.stops && t.route.stops.length > 0) {
+      const originStops = t.route.stops.filter(s => 
+        s.role === 'BOARDING' || s.role === 'EMBARQUEMENT' || s.role === 'STOP'
+      )
+      const destinationStops = t.route.stops.filter(s => 
+        s.role === 'ALIGHTING' || s.role === 'DEBARQUEMENT' || s.role === 'STOP'
+      )
+      
+      const hasOriginStop = originStops.some(s => 
+        normalizeSearchText(s.stop.city.name).includes(o) ||
+        normalizeSearchText(s.stop.name).includes(o)
+      )
+      const hasDestinationStop = destinationStops.some(s => 
+        normalizeSearchText(s.stop.city.name).includes(d) ||
+        normalizeSearchText(s.stop.name).includes(d)
+      )
+      
+      // Accepter si l'origine est un arrêt et la destination principale, ou vice-versa
+      stopMatch = (hasOriginStop && rd.includes(d)) ||
+                  (ro.includes(o) && hasDestinationStop) ||
+                  (hasOriginStop && hasDestinationStop)
+    }
+    
+    return mainRouteMatch || stopMatch
   })
 }
 
@@ -72,7 +114,20 @@ async function getReturnTrips(origin: string, destination: string, date: string)
     },
     include: {
       bus: true,
-      route: true,
+      route: {
+        include: {
+          stops: {
+            orderBy: { order: 'asc' },
+            include: {
+              stop: {
+                include: {
+                  city: true
+                }
+              }
+            }
+          }
+        }
+      },
       bookings: {
         where: {
           status: { in: ['CONFIRMED', 'PENDING'] },
@@ -89,7 +144,36 @@ async function getReturnTrips(origin: string, destination: string, date: string)
   return trips.filter((t) => {
     const ro = normalizeSearchText(t.route?.origin || '')
     const rd = normalizeSearchText(t.route?.destination || '')
-    return ro.includes(o) && rd.includes(d)
+    
+    // Vérifier correspondance origine/destination principales
+    const mainRouteMatch = ro.includes(o) && rd.includes(d)
+    
+    // Vérifier si origine/destination correspondent aux arrêts intermédiaires
+    let stopMatch = false
+    if (t.route?.stops && t.route.stops.length > 0) {
+      const originStops = t.route.stops.filter(s => 
+        s.role === 'BOARDING' || s.role === 'EMBARQUEMENT' || s.role === 'STOP'
+      )
+      const destinationStops = t.route.stops.filter(s => 
+        s.role === 'ALIGHTING' || s.role === 'DEBARQUEMENT' || s.role === 'STOP'
+      )
+      
+      const hasOriginStop = originStops.some(s => 
+        normalizeSearchText(s.stop.city.name).includes(o) ||
+        normalizeSearchText(s.stop.name).includes(o)
+      )
+      const hasDestinationStop = destinationStops.some(s => 
+        normalizeSearchText(s.stop.city.name).includes(d) ||
+        normalizeSearchText(s.stop.name).includes(d)
+      )
+      
+      // Accepter si l'origine est un arrêt et la destination principale, ou vice-versa
+      stopMatch = (hasOriginStop && rd.includes(d)) ||
+                  (ro.includes(o) && hasDestinationStop) ||
+                  (hasOriginStop && hasDestinationStop)
+    }
+    
+    return mainRouteMatch || stopMatch
   })
 }
 
@@ -102,6 +186,10 @@ export default async function SearchPage({
     date?: string
     returnDate?: string
     tripType?: string
+    adults?: string
+    children?: string
+    babies?: string
+    seniors?: string
   }>
 }) {
   const sp = await searchParams
@@ -110,8 +198,15 @@ export default async function SearchPage({
     destination = '',
     date = format(new Date(), 'yyyy-MM-dd'),
     returnDate,
-    tripType = 'one-way'
+    tripType = 'one-way',
+    adults = '1',
+    children = '0',
+    babies = '0',
+    seniors = '0'
   } = sp
+
+  // Calculate total passengers
+  const totalPassengers = parseInt(adults) + parseInt(children) + parseInt(babies) + parseInt(seniors)
 
   const isRoundTrip = tripType === 'round-trip'
 
@@ -223,6 +318,27 @@ export default async function SearchPage({
 
       <div className="container mx-auto px-4 py-6">
         <DashboardBackButton />
+        
+        {/* Info banner about intermediate stops */}
+        {origin && destination && (
+          <div className="mt-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-bold text-purple-900 mb-1">Réservation depuis les arrêts intermédiaires</h4>
+                <p className="text-sm text-purple-700">
+                  Certains bus proposent des <strong>arrêts intermédiaires</strong> avec places disponibles. 
+                  Vous pouvez monter ou descendre dans ces villes même si ce ne sont pas les terminus.
+                  Les trajets concernés affichent les arrêts disponibles ci-dessous.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="container mx-auto px-4 py-10">
@@ -275,6 +391,12 @@ export default async function SearchPage({
             displayCurrency={currency}
             outboundAvailability={outboundAvailability}
             returnAvailability={returnAvailability}
+            passengerCounts={{
+              adults: parseInt(adults),
+              children: parseInt(children),
+              babies: parseInt(babies),
+              seniors: parseInt(seniors)
+            }}
           />
         </Suspense>
 

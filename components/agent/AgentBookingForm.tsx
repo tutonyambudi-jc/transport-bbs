@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatCurrency } from '@/lib/utils'
-import { SeatMap } from '../client/SeatMap'
+import SeatMap from '../client/SeatMap'
 
 type PassengerGender = 'HOMME' | 'FEMME' | 'ENFANT'
 
@@ -17,6 +17,19 @@ interface Trip {
   route: {
     origin: string
     destination: string
+    stops?: Array<{
+      id: string
+      order: number
+      role: string
+      stop: {
+        id: string
+        name: string
+        city: {
+          id: string
+          name: string
+        }
+      }
+    }>
   }
   bus: {
     name: string
@@ -62,7 +75,9 @@ export function AgentBookingForm({ agentId, preselectedTripId, onSuccess }: Agen
     passengerAddress: string
     extraBaggagePieces: number
     extraBaggageOverweightKg: number
-  }>>([{ passengerName: '', passengerGender: 'HOMME', passengerAddress: '', extraBaggagePieces: 0, extraBaggageOverweightKg: 0 }])
+    boardingStopId?: string
+    alightingStopId?: string
+  }>>([{ passengerName: '', passengerGender: 'HOMME', passengerAddress: '', extraBaggagePieces: 0, extraBaggageOverweightKg: 0, boardingStopId: '', alightingStopId: '' }])
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
@@ -73,6 +88,12 @@ export function AgentBookingForm({ agentId, preselectedTripId, onSuccess }: Agen
     date: format(new Date(), 'yyyy-MM-dd'),
     tripType: 'one-way' as 'one-way' | 'round-trip',
     returnDate: format(new Date(Date.now() + 86400000), 'yyyy-MM-dd'),
+  })
+  const [passengerCounts, setPassengerCounts] = useState({
+    adults: 1,
+    children: 0,
+    babies: 0,
+    seniors: 0,
   })
 
   useEffect(() => {
@@ -287,7 +308,7 @@ export function AgentBookingForm({ agentId, preselectedTripId, onSuccess }: Agen
         paymentMethod: 'CASH',
       })
       setSelectedTrip(null)
-      setPassengers([{ passengerName: '', passengerGender: 'HOMME', passengerAddress: '', extraBaggagePieces: 0, extraBaggageOverweightKg: 0 }])
+      setPassengers([{ passengerName: '', passengerGender: 'HOMME', passengerAddress: '', extraBaggagePieces: 0, extraBaggageOverweightKg: 0, boardingStopId: '', alightingStopId: '' }])
       setSelectedSeatIds([])
       setStep('trip')
       setLoading(false)
@@ -566,6 +587,129 @@ export function AgentBookingForm({ agentId, preselectedTripId, onSuccess }: Agen
                   </div>
                 )}
               </div>
+
+              {/* Passengers Counters */}
+              <div className="bg-white rounded-2xl p-6 border-2 border-gray-100 mt-4">
+                <label className="flex items-center gap-2 text-xs font-bold text-gray-700 mb-4">
+                  <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Passagers
+                  <span className="ml-auto text-primary-600 font-black">
+                    Total: {passengerCounts.adults + passengerCounts.children + passengerCounts.babies + passengerCounts.seniors}
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Adults */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Adultes
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, adults: Math.max(0, prev.adults - 1) }))}
+                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-sm transition-all active:scale-95"
+                      >
+                        −
+                      </button>
+                      <span className="flex-1 text-center font-bold">{passengerCounts.adults}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, adults: Math.min(10, prev.adults + 1) }))}
+                        className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center font-bold text-sm transition-all active:scale-95"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Children */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Enfants
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))}
+                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-sm transition-all active:scale-95"
+                      >
+                        −
+                      </button>
+                      <span className="flex-1 text-center font-bold">{passengerCounts.children}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, children: Math.min(10, prev.children + 1) }))}
+                        className="w-8 h-8 rounded-lg bg-green-500 hover:bg-green-600 text-white flex items-center justify-center font-bold text-sm transition-all active:scale-95"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Babies */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      Bébés
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, babies: Math.max(0, prev.babies - 1) }))}
+                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-sm transition-all active:scale-95"
+                      >
+                        −
+                      </button>
+                      <span className="flex-1 text-center font-bold">{passengerCounts.babies}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, babies: Math.min(10, prev.babies + 1) }))}
+                        className="w-8 h-8 rounded-lg bg-pink-500 hover:bg-pink-600 text-white flex items-center justify-center font-bold text-sm transition-all active:scale-95"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Seniors */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      Vieux
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.max(0, prev.seniors - 1) }))}
+                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-sm transition-all active:scale-95"
+                      >
+                        −
+                      </button>
+                      <span className="flex-1 text-center font-bold">{passengerCounts.seniors}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.min(10, prev.seniors + 1) }))}
+                        className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center font-bold text-sm transition-all active:scale-95"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -778,7 +922,7 @@ export function AgentBookingForm({ agentId, preselectedTripId, onSuccess }: Agen
                       setFormData((p) => ({ ...p, passengerCount: count }))
                       setPassengers((prev) => {
                         const next = [...prev]
-                        while (next.length < count) next.push({ passengerName: '', passengerGender: 'HOMME', passengerAddress: '', extraBaggagePieces: 0, extraBaggageOverweightKg: 0 })
+                        while (next.length < count) next.push({ passengerName: '', passengerGender: 'HOMME', passengerAddress: '', extraBaggagePieces: 0, extraBaggageOverweightKg: 0, boardingStopId: '', alightingStopId: '' })
                         return next.slice(0, count)
                       })
                       setSelectedSeatIds([])
@@ -903,6 +1047,57 @@ export function AgentBookingForm({ agentId, preselectedTripId, onSuccess }: Agen
                           className="w-full px-5 py-3.5 bg-gray-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-2xl transition-all font-bold text-gray-700"
                         />
                       </div>
+
+                      {/* Boarding & Alighting Stops */}
+                      {selectedTrip?.route?.stops && selectedTrip.route.stops.length > 0 && (
+                        <>
+                          <div className="md:col-span-3">
+                            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-4">
+                              <p className="text-xs text-purple-900 font-semibold">
+                                💡 Ce trajet propose des arrêts intermédiaires. Vous pouvez choisir des points d'embarquement/débarquement différents.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="md:col-span-1.5 space-y-1.5">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Point d'embarquement</label>
+                            <select
+                              value={p.boardingStopId || ''}
+                              onChange={(e) =>
+                                setPassengers((prev) => prev.map((x, i) => (i === idx ? { ...x, boardingStopId: e.target.value } : x)))
+                              }
+                              className="w-full px-4 py-2.5 bg-gray-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-xl transition-all font-semibold text-gray-700 text-sm"
+                            >
+                              <option value="">🏁 Départ: {selectedTrip.route.origin}</option>
+                              {selectedTrip.route.stops
+                                .filter(s => s.role === 'BOARDING' || s.role === 'EMBARQUEMENT' || s.role === 'STOP')
+                                .map(stop => (
+                                  <option key={stop.id} value={stop.stop.id}>
+                                    📍 {stop.stop.name} - {stop.stop.city.name}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                          <div className="md:col-span-1.5 space-y-1.5">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Point de débarquement</label>
+                            <select
+                              value={p.alightingStopId || ''}
+                              onChange={(e) =>
+                                setPassengers((prev) => prev.map((x, i) => (i === idx ? { ...x, alightingStopId: e.target.value } : x)))
+                              }
+                              className="w-full px-4 py-2.5 bg-gray-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-xl transition-all font-semibold text-gray-700 text-sm"
+                            >
+                              <option value="">🏁 Arrivée: {selectedTrip.route.destination}</option>
+                              {selectedTrip.route.stops
+                                .filter(s => s.role === 'ALIGHTING' || s.role === 'DEBARQUEMENT' || s.role === 'STOP')
+                                .map(stop => (
+                                  <option key={stop.id} value={stop.stop.id}>
+                                    📍 {stop.stop.name} - {stop.stop.city.name}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -941,53 +1136,23 @@ export function AgentBookingForm({ agentId, preselectedTripId, onSuccess }: Agen
               </div>
             </div>
 
-            <div className="flex gap-8 items-start">
-              {/* Bus on the left */}
-              <div className="flex-1">
-                <SeatMap
-                  seats={selectedTrip.bus.seats.map(s => ({
-                    ...s,
-                    isAvailable: s.isAvailable && !occupiedSeatIds.includes(s.id),
-                    seatType: (s as any).seatType || 'STANDARD'
-                  }))}
-                  selectedSeatIds={selectedSeatIds}
-                  onSeatSelect={toggleSeat}
-                  maxSelection={formData.passengerCount}
-                />
-              </div>
-              {/* Legend on the right */}
-              <div className="w-64 flex-shrink-0">
-                <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/60 shadow-sm sticky top-20">
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-gray-900 mb-4">Légende</h4>
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-white border border-slate-200 rounded-lg shadow-sm flex-shrink-0"></div>
-                      <span className="text-sm text-slate-600">Libre</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-500 rounded-lg shadow-sm flex-shrink-0"></div>
-                      <span className="text-sm text-slate-600">VIP</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-slate-200 rounded-lg border-transparent opacity-40 flex-shrink-0"></div>
-                      <span className="text-sm text-slate-600">Occupé</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-primary-600 rounded-lg shadow-lg ring-2 ring-primary-100 flex-shrink-0"></div>
-                      <span className="text-sm text-slate-600">Choisi</span>
-                    </div>
-                  </div>
-                  {/* Seats remaining info */}
-                  <div className="mt-6 pt-4 border-t border-slate-200">
-                    <div className={`px-4 py-3 rounded-xl text-center font-black shadow-sm ${selectedTrip.bus.seats.length - occupiedSeatIds.length <= 5
-                      ? 'bg-rose-500 text-white animate-pulse'
-                      : 'bg-primary-50 text-primary-700'}`}>
-                      {selectedTrip.bus.seats.length - occupiedSeatIds.length} sièges restants
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="w-full">
+              <SeatMap
+                seats={selectedTrip.bus.seats.map(s => ({
+                  ...s,
+                  isAvailable: s.isAvailable && !occupiedSeatIds.includes(s.id),
+                  seatType: (s as any).seatType || 'STANDARD'
+                }))}
+                selectedSeatIds={selectedSeatIds}
+                onSeatSelect={(seatId: string | string[]) => {
+                  const ids = Array.isArray(seatId) ? seatId : [seatId];
+                  setSelectedSeatIds(ids.filter(Boolean));
+                }}
+                maxSelection={formData.passengerCount}
+                selectionKey="id" // Or "seatNumber" based on admin config
+              />
             </div>
+
 
             <div className="flex items-center justify-between gap-4 pt-6 border-t border-gray-100">
               <button

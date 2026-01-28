@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { formatCurrency, type DisplayCurrency } from '@/lib/utils'
-import { SeatMap } from './SeatMap'
+import SeatMap from './SeatMap'
 import { COUNTRY_CODES, getCountryLabel, type CountryCode } from '@/lib/countries'
 
 interface Seat {
@@ -26,6 +26,19 @@ interface Trip {
   route: {
     origin: string
     destination: string
+    stops?: Array<{
+      id: string
+      order: number
+      role: string
+      stop: {
+        id: string
+        name: string
+        city: {
+          id: string
+          name: string
+        }
+      }
+    }>
   }
   promoActive?: boolean
   promoPrice?: number | null
@@ -42,80 +55,153 @@ interface BookingFormProps {
     email: string
     phone?: string | null
   } | null
+  passengerCounts?: {
+    adults: number
+    children: number
+    babies: number
+    seniors: number
+  }
 }
 
-export function BookingForm({ trip, availableSeats, displayCurrency = 'FC', user }: BookingFormProps) {
+export function BookingForm({ trip, availableSeats, displayCurrency = 'FC', user, passengerCounts = { adults: 1, children: 0, babies: 0, seniors: 0 } }: BookingFormProps) {
+  console.log('BookingForm passengerCounts:', passengerCounts)
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
-  const [selectedSeat, setSelectedSeat] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    passengerName: '',
-    passengerPhone: '',
-    passengerEmail: '',
-    passengerAvenue: '',
-    passengerCommune: '',
-    passengerCity: '',
-    passengerCountry: 'CI' as CountryCode,
-  })
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([])
+  const [premiumMode, setPremiumMode] = useState(false)
+  const [seatSelectionKey, setSeatSelectionKey] = useState<'id' | 'seatNumber'>('id')
+  
+  // Calculate total passengers and create array of passenger types
+  const totalPassengers = passengerCounts.adults + passengerCounts.children + passengerCounts.babies + passengerCounts.seniors
+  
+  // Initialize passenger data for each passenger
+  const [passengersData, setPassengersData] = useState<Array<{
+    passengerName: string
+    passengerPhone: string
+    passengerEmail: string
+    passengerAvenue: string
+    passengerCommune: string
+    passengerCity: string
+    passengerCountry: CountryCode
+    passengerType: 'ADULT' | 'CHILD' | 'INFANT' | 'SENIOR'
+    passengerAge: string
+    hasDisability: boolean
+    disabilityProofUrl: string
+    boardingStopId: string
+    alightingStopId: string
+  }>>([])
+
+  // Update passengers data when passenger counts change
+  useEffect(() => {
+    const passengerTypes: Array<'ADULT' | 'CHILD' | 'INFANT' | 'SENIOR'> = [
+      ...Array(passengerCounts.adults).fill('ADULT'),
+      ...Array(passengerCounts.children).fill('CHILD'),
+      ...Array(passengerCounts.babies).fill('INFANT'),
+      ...Array(passengerCounts.seniors).fill('SENIOR')
+    ]
+    
+    const newPassengersData = passengerTypes.map((type, index) => ({
+      passengerName: index === 0 && user ? `${user.firstName} ${user.lastName}` : '',
+      passengerPhone: index === 0 && user?.phone ? user.phone : '',
+      passengerEmail: index === 0 && user ? user.email : '',
+      passengerAvenue: '',
+      passengerCommune: '',
+      passengerCity: '',
+      passengerCountry: 'CI' as CountryCode,
+      passengerType: type,
+      passengerAge: '',
+      hasDisability: false,
+      disabilityProofUrl: '',
+      boardingStopId: '',
+      alightingStopId: '',
+    }))
+    
+    setPassengersData(newPassengersData)
+    // Réinitialiser les sièges sélectionnés quand le nombre de passagers change
+    setSelectedSeats([])
+  }, [passengerCounts, user])
+  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     setMounted(true)
-    if (user) {
-      setFormData(prev => ({
-        ...prev,
-        passengerName: `${user.firstName} ${user.lastName}`,
-        passengerEmail: user.email,
-        passengerPhone: user.phone || prev.passengerPhone,
-      }))
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('ar_premium_mode') : null
+      if (saved === '1') setPremiumMode(true)
+      else if (saved === '0') setPremiumMode(false)
+    } catch {
+      // ignore
     }
-  }, [user])
+
+    // Fetch seat selection setting
+    fetch('/api/settings?key=seatSelectionKey')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.value) {
+          setSeatSelectionKey(data.value as 'id' | 'seatNumber')
+        }
+      })
+      .catch(err => console.error('Error fetching seat selection setting:', err))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (!selectedSeat) {
-      setError('Veuillez sélectionner un siège')
+    if (selectedSeats.length !== totalPassengers) {
+      setError(`Veuillez sélectionner exactement ${totalPassengers} siège(s)`)
       return
     }
 
-    if (!formData.passengerName) {
-      setError('Veuillez renseigner le nom du passager')
-      return
-    }
-
-    if (!formData.passengerCity.trim()) {
-      setError('Veuillez renseigner la ville du passager')
-      return
-    }
-
-    if (!formData.passengerCountry) {
-      setError('Veuillez sélectionner le pays')
-      return
+    // Validate all passenger data
+    for (let i = 0; i < passengersData.length; i++) {
+      const passenger = passengersData[i]
+      if (!passenger.passengerName.trim()) {
+        setError(`Veuillez renseigner le nom du passager ${i + 1}`)
+        return
+      }
+      if (!passenger.passengerCity.trim()) {
+        setError(`Veuillez renseigner la ville du passager ${i + 1}`)
+        return
+      }
+      if (!passenger.passengerCountry) {
+        setError(`Veuillez sélectionner le pays du passager ${i + 1}`)
+        return
+      }
     }
 
     setLoading(true)
 
     try {
-      const addressParts: string[] = []
-      if (formData.passengerAvenue.trim()) addressParts.push(`Avenue: ${formData.passengerAvenue.trim()}`)
-      if (formData.passengerCommune.trim()) addressParts.push(`Commune: ${formData.passengerCommune.trim()}`)
-      if (formData.passengerCity.trim()) addressParts.push(`Ville: ${formData.passengerCity.trim()}`)
-      if (formData.passengerCountry) addressParts.push(`Pays: ${getCountryLabel(formData.passengerCountry)}`)
-      const passengerAddress = addressParts.length ? addressParts.join(', ') : ''
+      // Create bookings for all passengers
+      const passengers = passengersData.map((passenger, index) => {
+        const addressParts: string[] = []
+        if (passenger.passengerAvenue.trim()) addressParts.push(`Avenue: ${passenger.passengerAvenue.trim()}`)
+        if (passenger.passengerCommune.trim()) addressParts.push(`Commune: ${passenger.passengerCommune.trim()}`)
+        if (passenger.passengerCity.trim()) addressParts.push(`Ville: ${passenger.passengerCity.trim()}`)
+        if (passenger.passengerCountry) addressParts.push(`Pays: ${getCountryLabel(passenger.passengerCountry)}`)
+        
+        return {
+          seatId: selectedSeats[index],
+          passengerName: passenger.passengerName,
+          passengerPhone: passenger.passengerPhone,
+          passengerEmail: passenger.passengerEmail,
+          passengerAddress: addressParts.length ? addressParts.join(', ') : '',
+          passengerType: passenger.passengerType,
+          passengerAge: passenger.passengerAge ? parseInt(passenger.passengerAge) : null,
+          hasDisability: passenger.hasDisability,
+          boardingStopId: passenger.boardingStopId || null,
+          alightingStopId: passenger.alightingStopId || null,
+        }
+      })
 
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tripId: trip.id,
-          seatId: selectedSeat,
-          passengerName: formData.passengerName,
-          passengerPhone: formData.passengerPhone,
-          passengerEmail: formData.passengerEmail,
-          passengerAddress,
+          passengers,
         }),
       })
 
@@ -126,7 +212,13 @@ export function BookingForm({ trip, availableSeats, displayCurrency = 'FC', user
         return
       }
 
-      router.push(`/bookings/${data.bookingId}/payment`)
+      // Redirect to payment page for the booking group
+      if (data.bookingGroupId) {
+        router.push(`/booking-groups/${data.bookingGroupId}/payment`)
+      } else {
+        // Fallback to old single booking payment if bookingGroupId not present
+        router.push(`/bookings/${data.bookingId}/payment`)
+      }
     } catch (err: any) {
       setError(`Erreur technique: ${err?.message || 'Une erreur est survenue'}`)
     } finally {
@@ -148,12 +240,6 @@ export function BookingForm({ trip, availableSeats, displayCurrency = 'FC', user
               className="px-4 py-2 bg-white text-primary-600 border border-primary-200 rounded-lg text-sm font-semibold hover:bg-primary-50 transition-colors"
             >
               Se connecter
-            </button>
-            <button
-              onClick={() => router.push(`/auth/register?callbackUrl=${encodeURIComponent(window.location.href)}`)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700 transition-colors"
-            >
-              Créer un compte
             </button>
           </div>
         </div>
@@ -202,162 +288,243 @@ export function BookingForm({ trip, availableSeats, displayCurrency = 'FC', user
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Seat Selection */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Sélectionnez votre siège</h3>
-          <div className="flex gap-8 items-start">
-            {/* Bus on the left */}
-            <div className="flex-1">
-              <SeatMap
-                seats={availableSeats}
-                selectedSeat={selectedSeat}
-                onSeatSelect={setSelectedSeat}
-              />
-            </div>
-
-            {/* Legend on the right */}
-            <div className="w-64 flex-shrink-0">
-              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/60 shadow-sm sticky top-20">
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-900 mb-4">Légende</h4>
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 bg-white border border-slate-200 rounded-lg shadow-sm flex-shrink-0"></div>
-                    <span className="text-sm text-slate-600">Libre</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-500 rounded-lg shadow-sm flex-shrink-0"></div>
-                    <span className="text-sm text-slate-600">VIP</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 bg-slate-200 rounded-lg border-transparent opacity-40 flex-shrink-0"></div>
-                    <span className="text-sm text-slate-600">Occupé</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 bg-primary-600 rounded-lg shadow-lg ring-2 ring-primary-100 flex-shrink-0"></div>
-                    <span className="text-sm text-slate-600">Choisi</span>
-                  </div>
-                </div>
-
-                {/* Seats remaining info */}
-                <div className="mt-6 pt-4 border-t border-slate-200">
-                  <div className={`px-4 py-3 rounded-xl text-center font-black shadow-sm ${availableSeats.length <= 5
-                    ? 'bg-rose-500 text-white animate-pulse'
-                    : 'bg-primary-50 text-primary-700'}`}>
-                    {availableSeats.length} sièges restants
-                  </div>
-                </div>
+        {/* Passenger Summary */}
+        <div className="bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Réservation pour {totalPassengers} passager{totalPassengers > 1 ? 's' : ''}</h3>
+              <div className="flex gap-3 mt-2 flex-wrap">
+                {passengerCounts.adults > 0 && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold">
+                    👨‍💼 {passengerCounts.adults} Adulte{passengerCounts.adults > 1 ? 's' : ''}
+                  </span>
+                )}
+                {passengerCounts.children > 0 && (
+                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-semibold">
+                    👶 {passengerCounts.children} Enfant{passengerCounts.children > 1 ? 's' : ''}
+                  </span>
+                )}
+                {passengerCounts.babies > 0 && (
+                  <span className="px-3 py-1 bg-pink-100 text-pink-700 rounded-lg text-sm font-semibold">
+                    🍼 {passengerCounts.babies} Bébé{passengerCounts.babies > 1 ? 's' : ''}
+                  </span>
+                )}
+                {passengerCounts.seniors > 0 && (
+                  <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-sm font-semibold">
+                    👴 {passengerCounts.seniors} Senior{passengerCounts.seniors > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Passenger Information */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations du passager</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="passengerName" className="block text-sm font-medium text-gray-700 mb-2">
-                Nom complet *
-              </label>
-              <input
-                type="text"
-                id="passengerName"
-                value={formData.passengerName}
-                onChange={(e) => setFormData({ ...formData, passengerName: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="passengerPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                Téléphone
-              </label>
-              <input
-                type="tel"
-                id="passengerPhone"
-                value={formData.passengerPhone}
-                onChange={(e) => setFormData({ ...formData, passengerPhone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="passengerAvenue" className="block text-sm font-medium text-gray-700 mb-2">
-                Avenue
-              </label>
-              <input
-                type="text"
-                id="passengerAvenue"
-                value={formData.passengerAvenue}
-                onChange={(e) => setFormData({ ...formData, passengerAvenue: e.target.value })}
-                placeholder="Ex: Avenue 12"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="passengerCommune" className="block text-sm font-medium text-gray-700 mb-2">
-                Commune
-              </label>
-              <input
-                type="text"
-                id="passengerCommune"
-                value={formData.passengerCommune}
-                onChange={(e) => setFormData({ ...formData, passengerCommune: e.target.value })}
-                placeholder="Ex: Cocody"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="passengerCity" className="block text-sm font-medium text-gray-700 mb-2">
-                Ville *
-              </label>
-              <input
-                type="text"
-                id="passengerCity"
-                value={formData.passengerCity}
-                onChange={(e) => setFormData({ ...formData, passengerCity: e.target.value })}
-                placeholder="Ex: Abidjan"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="passengerCountry" className="block text-sm font-medium text-gray-700 mb-2">
-                Pays *
-              </label>
-              <select
-                id="passengerCountry"
-                value={formData.passengerCountry}
-                onChange={(e) => setFormData({ ...formData, passengerCountry: e.target.value as CountryCode })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                required
-              >
-                {COUNTRY_CODES.map((code) => (
-                  <option key={code} value={code}>
-                    {mounted ? getCountryLabel(code) : code}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label htmlFor="passengerEmail" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                id="passengerEmail"
-                value={formData.passengerEmail}
-                onChange={(e) => setFormData({ ...formData, passengerEmail: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
+            <div className="text-right">
+              <div className="text-sm text-gray-600">Sièges sélectionnés</div>
+              <div className="text-2xl font-black text-primary-600">{selectedSeats.length}/{totalPassengers}</div>
             </div>
           </div>
         </div>
 
+        {/* Seat Selection */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Sélectionnez {totalPassengers} siège{totalPassengers > 1 ? 's' : ''}</h3>
+          <div className="w-full">
+            <SeatMap
+              seats={availableSeats}
+              selectedSeatIds={selectedSeats}
+              onSeatSelect={(seats) => setSelectedSeats(Array.isArray(seats) ? seats : [seats])}
+              maxSelection={totalPassengers}
+              selectionKey={seatSelectionKey}
+            />
+          </div>
+        </div>
+
+        {/* Passenger Information - Loop through all passengers */}
+        <div className="border-t pt-6 space-y-6">
+          {passengersData.map((passenger, index) => {
+            const seatNumber = selectedSeats[index] 
+              ? availableSeats.find(s => s.id === selectedSeats[index] || s.seatNumber === selectedSeats[index])?.seatNumber 
+              : null
+            
+            const typeLabel = passenger.passengerType === 'ADULT' ? '👨‍💼 Adulte'
+              : passenger.passengerType === 'CHILD' ? '👶 Enfant'
+              : passenger.passengerType === 'INFANT' ? '🍼 Bébé'
+              : '👴 Senior'
+            
+            return (
+              <div key={index} className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Passager {index + 1} - {typeLabel}
+                  </h3>
+                  {seatNumber && (
+                    <span className="px-4 py-2 bg-primary-600 text-white rounded-lg font-bold">
+                      Siège {seatNumber}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom complet *
+                    </label>
+                    <input
+                      type="text"
+                      value={passenger.passengerName}
+                      onChange={(e) => {
+                        const newData = [...passengersData]
+                        newData[index].passengerName = e.target.value
+                        setPassengersData(newData)
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Âge *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="120"
+                      value={passenger.passengerAge}
+                      onChange={(e) => {
+                        const newData = [...passengersData]
+                        newData[index].passengerAge = e.target.value
+                        setPassengersData(newData)
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      required
+                      placeholder="Ex: 25"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Téléphone
+                    </label>
+                    <input
+                      type="tel"
+                      value={passenger.passengerPhone}
+                      onChange={(e) => {
+                        const newData = [...passengersData]
+                        newData[index].passengerPhone = e.target.value
+                        setPassengersData(newData)
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ville *
+                    </label>
+                    <input
+                      type="text"
+                      value={passenger.passengerCity}
+                      onChange={(e) => {
+                        const newData = [...passengersData]
+                        newData[index].passengerCity = e.target.value
+                        setPassengersData(newData)
+                      }}
+                      placeholder="Ex: Abidjan"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Pays *
+                    </label>
+                    <select
+                      value={passenger.passengerCountry}
+                      onChange={(e) => {
+                        const newData = [...passengersData]
+                        newData[index].passengerCountry = e.target.value as CountryCode
+                        setPassengersData(newData)
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      required
+                    >
+                      {COUNTRY_CODES.map((code) => (
+                        <option key={code} value={code}>
+                          {mounted ? getCountryLabel(code) : code}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={passenger.passengerEmail}
+                      onChange={(e) => {
+                        const newData = [...passengersData]
+                        newData[index].passengerEmail = e.target.value
+                        setPassengersData(newData)
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  {/* Boarding & Alighting Stops for this passenger */}
+                  {trip.route.stops && trip.route.stops.length > 0 && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Point d'embarquement
+                        </label>
+                        <select
+                          value={passenger.boardingStopId}
+                          onChange={(e) => {
+                            const newData = [...passengersData]
+                            newData[index].boardingStopId = e.target.value
+                            setPassengersData(newData)
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          <option value="">🏁 Départ: {trip.route.origin}</option>
+                          {trip.route.stops
+                            .filter(s => s.role === 'BOARDING' || s.role === 'EMBARQUEMENT' || s.role === 'STOP')
+                            .map(stop => (
+                              <option key={stop.id} value={stop.stop.id}>
+                                📍 {stop.stop.name} - {stop.stop.city.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Point de débarquement
+                        </label>
+                        <select
+                          value={passenger.alightingStopId}
+                          onChange={(e) => {
+                            const newData = [...passengersData]
+                            newData[index].alightingStopId = e.target.value
+                            setPassengersData(newData)
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          <option value="">🏁 Arrivée: {trip.route.destination}</option>
+                          {trip.route.stops
+                            .filter(s => s.role === 'ALIGHTING' || s.role === 'DEBARQUEMENT' || s.role === 'STOP')
+                            .map(stop => (
+                              <option key={stop.id} value={stop.stop.id}>
+                                📍 {stop.stop.name} - {stop.stop.city.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Submit Buttons */}
         <div className="flex justify-end gap-4 pt-4 border-t">
           <button
             type="button"
@@ -368,10 +535,10 @@ export function BookingForm({ trip, availableSeats, displayCurrency = 'FC', user
           </button>
           <button
             type="submit"
-            disabled={loading || !selectedSeat}
+            disabled={loading || selectedSeats.length !== totalPassengers}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Traitement...' : 'Continuer vers le paiement'}
+            {loading ? 'Traitement...' : `Continuer vers le paiement (${totalPassengers} billet${totalPassengers > 1 ? 's' : ''})`}
           </button>
         </div>
       </form>

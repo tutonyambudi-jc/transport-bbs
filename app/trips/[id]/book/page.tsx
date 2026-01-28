@@ -15,6 +15,9 @@ async function getTrip(id: string) {
       bus: {
         include: {
           seats: {
+            where: {
+              isHidden: false, // Exclure les sièges cachés
+            },
             include: {
               bookings: {
                 where: {
@@ -25,7 +28,20 @@ async function getTrip(id: string) {
           },
         },
       },
-      route: true,
+      route: {
+        include: {
+          stops: {
+            orderBy: { order: 'asc' },
+            include: {
+              stop: {
+                include: {
+                  city: true
+                }
+              }
+            }
+          }
+        }
+      },
       bookings: {
         where: {
           status: { in: ['CONFIRMED', 'PENDING'] },
@@ -42,15 +58,34 @@ async function getTrip(id: string) {
 
 export default async function BookTripPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{
+    adults?: string
+    children?: string
+    babies?: string
+    seniors?: string
+  }>
 }) {
   const { id } = await params;
+  const sp = await searchParams;
   const session = await getServerSession(authOptions)
 
   if (!session) {
     redirect(`/auth/login?callbackUrl=${encodeURIComponent(`/trips/${id}/book`)}`)
   }
+
+  // Get passenger counts from search params
+  const passengerCounts = {
+    adults: parseInt(sp.adults || '1'),
+    children: parseInt(sp.children || '0'),
+    babies: parseInt(sp.babies || '0'),
+    seniors: parseInt(sp.seniors || '0')
+  }
+  
+  console.log('BookTripPage searchParams:', sp)
+  console.log('BookTripPage passengerCounts:', passengerCounts)
 
   // On récupère la devise
   const cookieStore = await cookies()
@@ -103,6 +138,7 @@ export default async function BookTripPage({
               availableSeats={availableSeats}
               displayCurrency={currency}
               user={user}
+              passengerCounts={passengerCounts}
             />
           </div>
         </div>

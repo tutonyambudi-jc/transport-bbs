@@ -34,6 +34,12 @@ export function AgentSearchTrips({ agentId, onSelectTrip }: AgentSearchTripsProp
     tripType: 'one-way' as 'one-way' | 'round-trip',
     returnDate: format(new Date(Date.now() + 86400000), 'yyyy-MM-dd'),
   })
+  const [passengerCounts, setPassengerCounts] = useState({
+    adults: 1,
+    children: 0,
+    babies: 0,
+    seniors: 0,
+  })
   const [trips, setTrips] = useState<Trip[]>([])
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
@@ -55,11 +61,9 @@ export function AgentSearchTrips({ agentId, onSelectTrip }: AgentSearchTripsProp
             returnDate: typeof saved.returnDate === 'string' ? saved.returnDate : prev.returnDate,
           }))
         }
-      } catch (error) {
-        console.error('Failed to parse agentTripSearch from localStorage:', error);
       }
-    };
-      // ignore
+    } catch (error) {
+      console.error('Failed to parse agentTripSearch from localStorage:', error);
     }
   }, [])
 
@@ -238,6 +242,129 @@ export function AgentSearchTrips({ agentId, onSelectTrip }: AgentSearchTripsProp
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Passengers Counters */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/20">
+            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-4">
+              <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Passagers
+              <span className="ml-auto text-primary-600 font-black text-lg">
+                Total: {passengerCounts.adults + passengerCounts.children + passengerCounts.babies + passengerCounts.seniors}
+              </span>
+            </label>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Adults */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Adultes
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, adults: Math.max(0, prev.adults - 1) }))}
+                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 transition-all active:scale-95"
+                  >
+                    −
+                  </button>
+                  <span className="flex-1 text-center font-bold text-lg">{passengerCounts.adults}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, adults: Math.min(10, prev.adults + 1) }))}
+                    className="w-9 h-9 rounded-xl bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center font-bold transition-all active:scale-95"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Children */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Enfants
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))}
+                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 transition-all active:scale-95"
+                  >
+                    −
+                  </button>
+                  <span className="flex-1 text-center font-bold text-lg">{passengerCounts.children}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, children: Math.min(10, prev.children + 1) }))}
+                    className="w-9 h-9 rounded-xl bg-green-500 hover:bg-green-600 text-white flex items-center justify-center font-bold transition-all active:scale-95"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Babies */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  Bébés
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, babies: Math.max(0, prev.babies - 1) }))}
+                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 transition-all active:scale-95"
+                  >
+                    −
+                  </button>
+                  <span className="flex-1 text-center font-bold text-lg">{passengerCounts.babies}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, babies: Math.min(10, prev.babies + 1) }))}
+                    className="w-9 h-9 rounded-xl bg-pink-500 hover:bg-pink-600 text-white flex items-center justify-center font-bold transition-all active:scale-95"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Seniors */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Vieux
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.max(0, prev.seniors - 1) }))}
+                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 transition-all active:scale-95"
+                  >
+                    −
+                  </button>
+                  <span className="flex-1 text-center font-bold text-lg">{passengerCounts.seniors}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.min(10, prev.seniors + 1) }))}
+                    className="w-9 h-9 rounded-xl bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center font-bold transition-all active:scale-95"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {error && (

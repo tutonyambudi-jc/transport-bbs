@@ -739,6 +739,15 @@ export function RoutesTripsManager({
                   >
                     🗑️
                   </button>
+                  <button
+                    type="button"
+                    disabled={!selectedRouteId}
+                    onClick={() => router.push(`/admin/routes/${selectedRouteId}/stops`)}
+                    className="px-3 py-2.5 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 text-blue-600"
+                    title="Gérer les arrêts de la route"
+                  >
+                    📍
+                  </button>
                 </div>
               </div>
               <div />
@@ -764,9 +773,11 @@ export function RoutesTripsManager({
                   onChange={(e) => setRouteStopToAdd({ ...routeStopToAdd, role: e.target.value })}
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl bg-white"
                 >
-                  <option value="BOARDING">Embarquement</option>
-                  <option value="ALIGHTING">Débarquement</option>
-                  <option value="STOP">Escale</option>
+                  <option value="STOP">Escale (embarquement & débarquement)</option>
+                  <option value="BOARDING">Embarquement uniquement (BOARDING)</option>
+                  <option value="ALIGHTING">Débarquement uniquement (ALIGHTING)</option>
+                  <option value="EMBARQUEMENT">Embarquement uniquement</option>
+                  <option value="DEBARQUEMENT">Débarquement uniquement</option>
                 </select>
               </div>
               <div className="md:col-span-2">

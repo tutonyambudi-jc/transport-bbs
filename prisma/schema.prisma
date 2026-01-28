@@ -49,6 +49,16 @@ model User {
   @@map("users")
 }
 
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
 model ManifestShare {
   id          String    @id @default(uuid())
   token       String    @unique
@@ -66,26 +76,27 @@ model ManifestShare {
 }
 
 model Bus {
-  id             String                @id @default(uuid())
-  companyId      String?
-  plateNumber    String                @unique
-  name           String
-  brand          String?
-  capacity       Int
-  seatLayout     String
-  amenities      String?
-  seatType       String                @default("STANDARD")
-  imageUrl       String?
-  isActive       Boolean               @default(true)
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  rentals        BusRental[]
-  company        BusCompany?           @relation(fields: [companyId], references: [id])
-  scheduleEvents DriverScheduleEvent[]
-  drivers        Driver[]
-  freightOrders  FreightOrder[]
-  seats          Seat[]
-  trips          Trip[]
+  id                   String                @id @default(uuid())
+  companyId            String?
+  plateNumber          String                @unique
+  name                 String
+  brand                String?
+  capacity             Int
+  seatLayout           String
+  amenities            String?
+  seatType             String                @default("STANDARD")
+  imageUrl             String?
+  isActive             Boolean               @default(true)
+  allowsIntermediateStops Boolean            @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  rentals              BusRental[]
+  company              BusCompany?           @relation(fields: [companyId], references: [id])
+  scheduleEvents       DriverScheduleEvent[]
+  drivers              Driver[]
+  freightOrders        FreightOrder[]
+  seats                Seat[]
+  trips                Trip[]
 
   @@map("buses")
 }
@@ -208,6 +219,8 @@ model CityStop {
   freightOrigins      FreightOrder[] @relation("FreightOriginStop")
   routeStops          RouteStop[]
   tripStops           TripStop[]
+  boardingBookings    Booking[]      @relation("BookingBoardingStop")
+  alightingBookings   Booking[]      @relation("BookingAlightingStop")
 
   @@unique([cityId, name])
   @@map("city_stops")
@@ -226,6 +239,22 @@ model RouteStop {
 
   @@unique([routeId, order])
   @@map("route_stops")
+}
+
+model PassengerPricing {
+  id              String   @id @default(uuid())
+  passengerType   String   // ADULT, CHILD, INFANT, SENIOR, DISABLED
+  discountPercent Float    @default(0) // Percentage discount from adult price
+  minAge          Int?     // Minimum age for this category
+  maxAge          Int?     // Maximum age for this category
+  isActive        Boolean  @default(true)
+  description     String?
+  requiresDisabilityProof Boolean @default(false) // For DISABLED type
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([passengerType])
+  @@map("passenger_pricing")
 }
 
 model TripStop {
@@ -251,6 +280,7 @@ model Seat {
   seatNumber  String
   seatType    String    @default("STANDARD")
   isAvailable Boolean   @default(true)
+  isHidden    Boolean   @default(false) // Pour cacher/afficher le siège dans l'admin
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   bookings    Booking[]
@@ -260,13 +290,32 @@ model Seat {
   @@map("seats")
 }
 
+model BookingGroup {
+  id              String    @id @default(uuid())
+  userId          String
+  totalAmount     Float
+  status          String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  paymentStatus   String    @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  bookings        Booking[]
+  payment         Payment?
+
+  @@map("booking_groups")
+}
+
 model Booking {
   id                       String              @id @default(uuid())
+  bookingGroupId           String?
   tripId                   String
   userId                   String
   seatId                   String
   passengerName            String
   passengerGender          String?
+  passengerType            String              @default("ADULT") // ADULT, CHILD, INFANT, SENIOR, DISABLED
+  passengerAge             Int? // Age du passager au moment de la réservation
+  hasDisability            Boolean             @default(false) // Si le passager a un handicap
+  disabilityProofUrl       String? // URL du justificatif de handicap
   passengerAddress         String?
   passengerPhone           String?
   passengerEmail           String?
@@ -279,25 +328,48 @@ model Booking {
   qrCode                   String?             @unique
   ticketNumber             String              @unique
   totalPrice               Float               @default(0)
+  basePrice                Float               @default(0) // Prix de base avant réductions
+  discountAmount           Float               @default(0) // Montant de la réduction (enfant, etc.)
   baggageCount             Int                 @default(0)
   baggageWeight            Float               @default(0)
   checkInNotes             String?
   cancellationReason       String?
   checkedInAt              DateTime?
+  boardingStopId           String?
+  alightingStopId          String?
   createdAt                DateTime            @default(now())
   updatedAt                DateTime            @updatedAt
   agentId                  String?
   agencyStaffId            String?
+  bookingGroup             BookingGroup?       @relation(fields: [bookingGroupId], references: [id])
   agencyStaff              User?               @relation("AgencySales", fields: [agencyStaffId], references: [id])
   agent                    User?               @relation("AgentSales", fields: [agentId], references: [id])
   meal                     Meal?               @relation(fields: [mealId], references: [id])
   seat                     Seat                @relation(fields: [seatId], references: [id])
   user                     User                @relation(fields: [userId], references: [id])
   trip                     Trip                @relation(fields: [tripId], references: [id])
+  boardingStop             CityStop?           @relation("BookingBoardingStop", fields: [boardingStopId], references: [id])
+  alightingStop            CityStop?           @relation("BookingAlightingStop", fields: [alightingStopId], references: [id])
   loyaltyTransaction       LoyaltyTransaction?
   payment                  Payment?
 
   @@map("bookings")
+}
+
+model SeatSegmentAvailability {
+  id              String   @id @default(uuid())
+  tripId          String
+  seatId          String
+  fromStopOrder   Int
+  toStopOrder     Int
+  isAvailable     Boolean  @default(true)
+  bookingId       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tripId, seatId, fromStopOrder, toStopOrder])
+  @@index([tripId, fromStopOrder, toStopOrder])
+  @@map("seat_segment_availability")
 }
 
 model Meal {
@@ -328,17 +400,19 @@ model LoyaltyTransaction {
 }
 
 model Payment {
-  id              String    @id @default(uuid())
-  bookingId       String    @unique
+  id              String         @id @default(uuid())
+  bookingGroupId  String?        @unique
+  bookingId       String?        @unique // Keep for backward compatibility
   amount          Float
   method          String
-  status          String    @default("PENDING")
-  transactionId   String?   @unique
+  status          String         @default("PENDING")
+  transactionId   String?        @unique
   paidAt          DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   paymentDeadline DateTime?
-  booking         Booking   @relation(fields: [bookingId], references: [id])
+  bookingGroup    BookingGroup?  @relation(fields: [bookingGroupId], references: [id])
+  booking         Booking?       @relation(fields: [bookingId], references: [id])
 
   @@map("payments")
 }

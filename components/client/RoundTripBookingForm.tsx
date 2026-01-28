@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatCurrency, type DisplayCurrency } from '@/lib/utils'
-import { SeatMap } from './SeatMap'
+import SeatMap from './SeatMap'
 import { COUNTRY_CODES, getCountryLabel, type CountryCode } from '@/lib/countries'
 
 interface Seat {
@@ -27,6 +27,19 @@ interface Trip {
     route: {
         origin: string
         destination: string
+        stops?: Array<{
+            id: string
+            order: number
+            role: string
+            stop: {
+                id: string
+                name: string
+                city: {
+                    id: string
+                    name: string
+                }
+            }
+        }>
     }
 }
 
@@ -42,6 +55,12 @@ interface RoundTripBookingFormProps {
         email: string
         phone?: string | null
     } | null
+    passengerCounts?: {
+        adults: number
+        children: number
+        babies: number
+        seniors: number
+    }
 }
 
 export function RoundTripBookingForm({
@@ -51,6 +70,7 @@ export function RoundTripBookingForm({
     returnSeats,
     displayCurrency = 'FC',
     user,
+    passengerCounts = { adults: 1, children: 0, babies: 0, seniors: 0 },
 }: RoundTripBookingFormProps) {
     const router = useRouter()
     const [mounted, setMounted] = useState(false)
@@ -65,6 +85,10 @@ export function RoundTripBookingForm({
         passengerCommune: '',
         passengerCity: '',
         passengerCountry: 'CI' as CountryCode,
+        outboundBoardingStopId: '',
+        outboundAlightingStopId: '',
+        returnBoardingStopId: '',
+        returnAlightingStopId: '',
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -264,6 +288,8 @@ export function RoundTripBookingForm({
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet *</label>
                                 <input
                                     type="text"
+                                    name="name"
+                                    autoComplete="name"
                                     value={formData.passengerName}
                                     onChange={(e) => setFormData({ ...formData, passengerName: e.target.value })}
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -274,6 +300,8 @@ export function RoundTripBookingForm({
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
                                 <input
                                     type="tel"
+                                    name="phone"
+                                    autoComplete="tel"
                                     value={formData.passengerPhone}
                                     onChange={(e) => setFormData({ ...formData, passengerPhone: e.target.value })}
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -283,6 +311,8 @@ export function RoundTripBookingForm({
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                 <input
                                     type="email"
+                                    name="email"
+                                    autoComplete="email"
                                     value={formData.passengerEmail}
                                     onChange={(e) => setFormData({ ...formData, passengerEmail: e.target.value })}
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -292,6 +322,8 @@ export function RoundTripBookingForm({
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Ville *</label>
                                 <input
                                     type="text"
+                                    name="city"
+                                    autoComplete="address-level1"
                                     value={formData.passengerCity}
                                     onChange={(e) => setFormData({ ...formData, passengerCity: e.target.value })}
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -301,6 +333,8 @@ export function RoundTripBookingForm({
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
                                 <select
+                                    name="country"
+                                    autoComplete="country"
                                     value={formData.passengerCountry}
                                     onChange={(e) => setFormData({ ...formData, passengerCountry: e.target.value as CountryCode })}
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -310,6 +344,105 @@ export function RoundTripBookingForm({
                                     ))}
                                 </select>
                             </div>
+                        </div>
+
+                        {/* Boarding & Alighting Stops for Both Trips */}
+                        <div className="space-y-6">
+                            {/* Outbound Stops */}
+                            {outboundTrip.route.stops && outboundTrip.route.stops.length > 0 && (
+                                <div className="border-t pt-6">
+                                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Arrêts ALLER (optionnel)</h4>
+                                    <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 mb-4">
+                                        <p className="text-sm text-purple-900">
+                                            💡 Ce trajet propose des arrêts intermédiaires.
+                                        </p>
+                                    </div>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Point d'embarquement</label>
+                                            <select
+                                                value={formData.outboundBoardingStopId}
+                                                onChange={(e) => setFormData({ ...formData, outboundBoardingStopId: e.target.value })}
+                                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                            >
+                                                <option value="">🏁 Départ: {outboundTrip.route.origin}</option>
+                                                {outboundTrip.route.stops
+                                                    .filter(s => s.role === 'BOARDING' || s.role === 'EMBARQUEMENT' || s.role === 'STOP')
+                                                    .map(stop => (
+                                                        <option key={stop.id} value={stop.stop.id}>
+                                                            📍 {stop.stop.name} - {stop.stop.city.name}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Point de débarquement</label>
+                                            <select
+                                                value={formData.outboundAlightingStopId}
+                                                onChange={(e) => setFormData({ ...formData, outboundAlightingStopId: e.target.value })}
+                                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                            >
+                                                <option value="">🏁 Arrivée: {outboundTrip.route.destination}</option>
+                                                {outboundTrip.route.stops
+                                                    .filter(s => s.role === 'ALIGHTING' || s.role === 'DEBARQUEMENT' || s.role === 'STOP')
+                                                    .map(stop => (
+                                                        <option key={stop.id} value={stop.stop.id}>
+                                                            📍 {stop.stop.name} - {stop.stop.city.name}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Return Stops */}
+                            {returnTrip.route.stops && returnTrip.route.stops.length > 0 && (
+                                <div className="border-t pt-6">
+                                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Arrêts RETOUR (optionnel)</h4>
+                                    <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 mb-4">
+                                        <p className="text-sm text-purple-900">
+                                            💡 Ce trajet propose des arrêts intermédiaires.
+                                        </p>
+                                    </div>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Point d'embarquement</label>
+                                            <select
+                                                value={formData.returnBoardingStopId}
+                                                onChange={(e) => setFormData({ ...formData, returnBoardingStopId: e.target.value })}
+                                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                            >
+                                                <option value="">🏁 Départ: {returnTrip.route.origin}</option>
+                                                {returnTrip.route.stops
+                                                    .filter(s => s.role === 'BOARDING' || s.role === 'EMBARQUEMENT' || s.role === 'STOP')
+                                                    .map(stop => (
+                                                        <option key={stop.id} value={stop.stop.id}>
+                                                            📍 {stop.stop.name} - {stop.stop.city.name}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Point de débarquement</label>
+                                            <select
+                                                value={formData.returnAlightingStopId}
+                                                onChange={(e) => setFormData({ ...formData, returnAlightingStopId: e.target.value })}
+                                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                            >
+                                                <option value="">🏁 Arrivée: {returnTrip.route.destination}</option>
+                                                {returnTrip.route.stops
+                                                    .filter(s => s.role === 'ALIGHTING' || s.role === 'DEBARQUEMENT' || s.role === 'STOP')
+                                                    .map(stop => (
+                                                        <option key={stop.id} value={stop.stop.id}>
+                                                            📍 {stop.stop.name} - {stop.stop.city.name}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex justify-end">
@@ -333,110 +466,44 @@ export function RoundTripBookingForm({
 
                         {/* Outbound Seat */}
                         <div className="space-y-4">
-                            <div className="flex gap-8 items-start">
-                                {/* Bus on the left */}
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                            </svg>
-                                        </div>
-                                        <span className="font-bold text-gray-900">Siège ALLER: {outboundTrip.route.origin} → {outboundTrip.route.destination}</span>
+                            <div className="w-full">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                        </svg>
                                     </div>
-                                    <SeatMap
-                                        seats={outboundSeats}
-                                        selectedSeat={selectedOutboundSeat}
-                                        onSeatSelect={setSelectedOutboundSeat}
-                                    />
+                                    <span className="font-bold text-gray-900">Siège ALLER: {outboundTrip.route.origin} → {outboundTrip.route.destination}</span>
                                 </div>
-                                {/* Legend on the right */}
-                                <div className="w-64 flex-shrink-0">
-                                    <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/60 shadow-sm sticky top-20">
-                                        <div className="space-y-4">
-                                            <h4 className="font-semibold text-gray-900 mb-4">Légende</h4>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-white border border-slate-200 rounded-lg shadow-sm flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">Libre</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-500 rounded-lg shadow-sm flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">VIP</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-slate-200 rounded-lg border-transparent opacity-40 flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">Occupé</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-primary-600 rounded-lg shadow-lg ring-2 ring-primary-100 flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">Choisi</span>
-                                            </div>
-                                        </div>
-                                        {/* Seats remaining info */}
-                                        <div className="mt-6 pt-4 border-t border-slate-200">
-                                            <div className={`px-4 py-3 rounded-xl text-center font-black shadow-sm ${outboundSeats.length <= 5
-                                                ? 'bg-rose-500 text-white animate-pulse'
-                                                : 'bg-primary-50 text-primary-700'}`}>
-                                                {outboundSeats.length} sièges restants
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <SeatMap
+                                    seats={outboundSeats}
+                                    selectedSeatIds={selectedOutboundSeat ? [selectedOutboundSeat] : []}
+                                    onSeatSelect={(seatId: string | string[]) => setSelectedOutboundSeat(Array.isArray(seatId) ? seatId[0] : seatId)}
+                                    maxSelection={1}
+                                    selectionKey="id"
+                                />
                             </div>
                         </div>
 
 
                         {/* Return Seat */}
                         <div className="space-y-4">
-                            <div className="flex gap-8 items-start">
-                                {/* Bus on the left */}
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-                                            </svg>
-                                        </div>
-                                        <span className="font-bold text-gray-900">Siège RETOUR: {returnTrip.route.origin} → {returnTrip.route.destination}</span>
+                            <div className="w-full">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                                        </svg>
                                     </div>
-                                    <SeatMap
-                                        seats={returnSeats}
-                                        selectedSeat={selectedReturnSeat}
-                                        onSeatSelect={setSelectedReturnSeat}
-                                    />
+                                    <span className="font-bold text-gray-900">Siège RETOUR: {returnTrip.route.origin} → {returnTrip.route.destination}</span>
                                 </div>
-                                {/* Legend on the right */}
-                                <div className="w-64 flex-shrink-0">
-                                    <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/60 shadow-sm sticky top-20">
-                                        <div className="space-y-4">
-                                            <h4 className="font-semibold text-gray-900 mb-4">Légende</h4>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-white border border-slate-200 rounded-lg shadow-sm flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">Libre</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-500 rounded-lg shadow-sm flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">VIP</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-slate-200 rounded-lg border-transparent opacity-40 flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">Occupé</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 bg-primary-600 rounded-lg shadow-lg ring-2 ring-primary-100 flex-shrink-0"></div>
-                                                <span className="text-sm text-slate-600">Choisi</span>
-                                            </div>
-                                        </div>
-                                        {/* Seats remaining info */}
-                                        <div className="mt-6 pt-4 border-t border-slate-200">
-                                            <div className={`px-4 py-3 rounded-xl text-center font-black shadow-sm ${returnSeats.length <= 5
-                                                ? 'bg-rose-500 text-white animate-pulse'
-                                                : 'bg-green-50 text-green-700'}`}>
-                                                {returnSeats.length} sièges restants
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <SeatMap
+                                    seats={returnSeats}
+                                    selectedSeatIds={selectedReturnSeat ? [selectedReturnSeat] : []}
+                                    onSeatSelect={(seatId: string | string[]) => setSelectedReturnSeat(Array.isArray(seatId) ? seatId[0] : seatId)}
+                                    maxSelection={1}
+                                    selectionKey="id"
+                                />
                             </div>
                         </div>
 

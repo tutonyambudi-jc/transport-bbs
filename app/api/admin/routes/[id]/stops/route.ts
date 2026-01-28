@@ -45,7 +45,7 @@ export async function POST(
     const notes = typeof body?.notes === 'string' ? body.notes.trim() : ''
 
     if (!stopId) return NextResponse.json({ error: 'Arrêt requis' }, { status: 400 })
-    if (!['BOARDING', 'ALIGHTING', 'STOP'].includes(role)) {
+    if (!['BOARDING', 'ALIGHTING', 'STOP', 'EMBARQUEMENT', 'DEBARQUEMENT'].includes(role)) {
       return NextResponse.json({ error: 'Rôle invalide' }, { status: 400 })
     }
 

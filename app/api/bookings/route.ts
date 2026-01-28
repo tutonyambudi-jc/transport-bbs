@@ -26,6 +26,11 @@ export async function POST(request: Request) {
       passengerAddress,
       passengerPhone,
       passengerEmail,
+      passengerType,
+      passengerAge,
+      hasDisability,
+      boardingStopId,
+      alightingStopId,
       agentId,
       passengers,
     } = body
@@ -37,6 +42,11 @@ export async function POST(request: Request) {
       passengerAddress?: string
       passengerPhone?: string
       passengerEmail?: string
+      passengerType?: string
+      passengerAge?: number
+      hasDisability?: boolean
+      boardingStopId?: string
+      alightingStopId?: string
       extraBaggagePieces?: number
       extraBaggageOverweightKg?: number
     }> = Array.isArray(passengers)
@@ -49,6 +59,11 @@ export async function POST(request: Request) {
             passengerAddress,
             passengerPhone,
             passengerEmail,
+            passengerType,
+            passengerAge,
+            hasDisability,
+            boardingStopId,
+            alightingStopId,
           },
         ]
 
@@ -145,9 +160,20 @@ export async function POST(request: Request) {
       bookingUserId = session.user.id
     }
 
-    // Créer 1 réservation par passager (par ticket)
+    // Créer 1 réservation par passager (par ticket) et les regrouper dans un BookingGroup
     const created = await prisma.$transaction(async (tx) => {
       const results: Array<{ id: string; ticketNumber: string }> = []
+      let totalAmount = 0
+
+      // Create the BookingGroup first
+      const bookingGroup = await tx.bookingGroup.create({
+        data: {
+          userId: bookingUserId,
+          totalAmount: 0, // Will be updated after bookings are created
+          status: 'PENDING',
+          paymentStatus: 'PENDING',
+        },
+      })
 
       for (const p of passengerList) {
         // Vérifier que le siège est disponible (par trajet)
@@ -176,16 +202,37 @@ export async function POST(request: Request) {
         const overweightKg = Number((p as any)?.extraBaggageOverweightKg)
         const baggageExtras = calcBaggageExtrasXof({ extraPieces, overweightKg })
 
+        // Get pricing rule for passenger type
+        const passengerTypeValue = p.passengerType || 'ADULT'
+        const pricingRule = await tx.passengerPricing.findUnique({
+          where: { passengerType: passengerTypeValue },
+        })
+
+        // Calculate price with discount
+        const basePrice = trip.price
+        const discountPercent = pricingRule?.discountPercent || 0
+        const discountAmount = (basePrice * discountPercent) / 100
+        const ticketPrice = basePrice - discountAmount
+        const bookingTotalPrice = ticketPrice + baggageExtras
+
+        totalAmount += bookingTotalPrice
+
         const booking = await tx.booking.create({
           data: {
+            bookingGroupId: bookingGroup.id,
             tripId,
             userId: bookingUserId,
             seatId: p.seatId,
             passengerName: p.passengerName,
             passengerGender: p.passengerGender || null,
+            passengerType: passengerTypeValue,
+            passengerAge: p.passengerAge || null,
+            hasDisability: p.hasDisability || false,
             passengerAddress: p.passengerAddress || null,
             passengerPhone: p.passengerPhone || null,
             passengerEmail: p.passengerEmail || null,
+            boardingStopId: p.boardingStopId || null,
+            alightingStopId: p.alightingStopId || null,
             extraBaggagePieces: Number.isFinite(extraPieces) ? Math.max(0, Math.floor(extraPieces)) : 0,
             extraBaggageOverweightKg: Number.isFinite(overweightKg) ? Math.max(0, overweightKg) : 0,
             extrasTotal: baggageExtras,
@@ -193,7 +240,9 @@ export async function POST(request: Request) {
             status: 'PENDING',
             agentId: bookingAgentId,
             agencyStaffId: bookingAgencyStaffId,
-            totalPrice: trip.price + baggageExtras,
+            basePrice: basePrice,
+            discountAmount: discountAmount,
+            totalPrice: bookingTotalPrice,
           },
           select: { id: true, ticketNumber: true },
         })
@@ -212,13 +261,19 @@ export async function POST(request: Request) {
         results.push({ id: booking.id, ticketNumber: booking.ticketNumber })
       }
 
-      return results
+      // Update the BookingGroup with the total amount
+      await tx.bookingGroup.update({
+        where: { id: bookingGroup.id },
+        data: { totalAmount },
+      })
+
+      return { results, bookingGroupId: bookingGroup.id }
     })
 
     // Dispatch Notifications (Async - don't block response)
     // We send to each passenger if email/phone provided, or to the booker? 
     // Logic: Send to each passenger individually if info available.
-    created.forEach(async (b) => {
+    created.results.forEach(async (b) => {
       // We need to fetch booking details to get email/phone if not in 'created'
       // Optimally, we pass the data from loop. But 'created' only has id/ticket.
       // Let's fire and forget based on input? Or just Log for now.
@@ -255,11 +310,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        bookingId: created[0]?.id,
-        id: created[0]?.id, // compat: certains écrans attendent `id`
-        ticketNumber: created[0]?.ticketNumber,
-        bookingIds: created.map((b) => b.id),
-        ticketNumbers: created.map((b) => b.ticketNumber),
+        bookingGroupId: created.bookingGroupId,
+        bookingId: created.results[0]?.id,
+        id: created.results[0]?.id, // compat: certains écrans attendent `id`
+        ticketNumber: created.results[0]?.ticketNumber,
+        bookingIds: created.results.map((b) => b.id),
+        ticketNumbers: created.results.map((b) => b.ticketNumber),
       },
       { status: 201 }
     )

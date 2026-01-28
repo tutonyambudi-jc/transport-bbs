@@ -15,6 +15,9 @@ async function getTrip(id: string) {
             bus: {
                 include: {
                     seats: {
+                        where: {
+                            isHidden: false, // Exclure les sièges cachés
+                        },
                         include: {
                             bookings: {
                                 where: {
@@ -43,18 +46,37 @@ async function getTrip(id: string) {
 export default async function BookRoundTripPage({
     searchParams,
 }: {
-    searchParams: Promise<{ outboundId?: string; returnId?: string }>
+    searchParams: Promise<{ 
+        outboundId?: string
+        returnId?: string
+        adults?: string
+        children?: string
+        babies?: string
+        seniors?: string
+    }>
 }) {
     const sp = await searchParams
-    const { outboundId, returnId } = sp
+    const { outboundId, returnId, adults, children, babies, seniors } = sp
     const cookieStore = await cookies()
     const currency: DisplayCurrency = cookieStore.get('ar_currency')?.value === 'USD' ? 'USD' : 'FC'
     const session = await getServerSession(authOptions)
+
+    // Get passenger counts from search params
+    const passengerCounts = {
+        adults: parseInt(adults || '1'),
+        children: parseInt(children || '0'),
+        babies: parseInt(babies || '0'),
+        seniors: parseInt(seniors || '0')
+    }
 
     if (!session) {
         const params = new URLSearchParams()
         if (outboundId) params.append('outboundId', outboundId)
         if (returnId) params.append('returnId', returnId)
+        if (adults) params.append('adults', adults)
+        if (children) params.append('children', children)
+        if (babies) params.append('babies', babies)
+        if (seniors) params.append('seniors', seniors)
         redirect(`/auth/login?callbackUrl=${encodeURIComponent(`/trips/book-round-trip?${params.toString()}`)}`)
     }
 
@@ -122,6 +144,7 @@ export default async function BookRoundTripPage({
                             returnSeats={returnSeats}
                             displayCurrency={currency}
                             user={user}
+                            passengerCounts={passengerCounts}
                         />
                     </div>
                 </div>

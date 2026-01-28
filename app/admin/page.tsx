@@ -194,6 +194,10 @@ export default async function AdminDashboardPage() {
               <div className="font-semibold text-gray-900">Performance des agents</div>
               <div className="text-sm text-gray-600">Ventes et commissions</div>
             </Link>
+            <Link href="/admin/city-stops" className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 bg-blue-50">
+              <div className="font-semibold text-gray-900">📍 Arrêts de ville</div>
+              <div className="text-sm text-gray-600">Gérer les gares et arrêts</div>
+            </Link>
           </div>
         </div>
       </div>
