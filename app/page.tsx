@@ -21,43 +21,41 @@ export default function HomePage() {
       {/* Hero Section with Bus Background */}
 
         {/* Bus Background Image Section */}
-        <div className="relative h-[650px] lg:h-[750px] bg-gray-900 overflow-hidden rounded-b-[3rem] shadow-2xl">
+        <div className="relative min-h-[600px] lg:min-h-[700px] bg-gray-900 overflow-hidden">
           {/* Background Image avec pattern de bus */}
           <div
             className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105"
             style={{
-              backgroundImage: `url('/images/hero-coach.jpg')`, // I'll assume the user will move it or I'll provide a local dev path
+              backgroundImage: `url('/images/hero-coach.jpg')`,
             }}
           >
             {/* Rich Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/80"></div>
           </div>
 
-          {/* Hero Text - moved higher */}
-          <div className="absolute inset-0 flex items-start justify-center pt-20 md:pt-28 pointer-events-none">
-            <div className="text-center space-y-4">
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight drop-shadow-lg">
+          {/* Hero Content Container */}
+          <div className="relative z-10 container mx-auto px-4 py-16 lg:py-20">
+            {/* Hero Text */}
+            <div className="text-center mb-10">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight mb-4">
                 Voyagez en <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500">Excellence</span>
               </h1>
-              <p className="text-lg md:text-xl text-gray-200 font-light max-w-2xl mx-auto drop-shadow-md">
+              <p className="text-lg md:text-xl text-gray-200/90 font-light max-w-2xl mx-auto">
                 Confort premium · Sécurité absolue · Service irréprochable
               </p>
             </div>
-          </div>
 
-          {/* Search Form - centered */}
-          <div id="search" className="absolute inset-0 flex items-center justify-center z-20 container mx-auto px-4 pt-20">
-            <div className="max-w-[92%] mx-auto w-full">
-              <div className="bg-white/50 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-6 md:p-10 border border-white/40 relative group hover:shadow-primary-900/20 transition-all duration-500">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary-600 via-amber-400 to-primary-600"></div>
+            {/* Search Form Card */}
+            <div id="search" className="max-w-5xl mx-auto">
+              <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20">
                 <SearchForm />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Reduced spacer since form is now centered */}
-        <div className="h-16"></div>
+        {/* Spacer */}
+        <div className="h-12"></div>
 
         {/* Results Section */}
 

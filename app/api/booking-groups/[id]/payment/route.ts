@@ -106,7 +106,7 @@ export async function POST(
       
       for (const booking of bookingGroup.bookings) {
         try {
-          const templates = NotificationService.templates.bookingConfirmed(booking, booking.ticketNumber)
+          const templates = NotificationService.templates.bookingConfirmation(booking, booking.ticketNumber)
 
           if (booking.passengerEmail) {
             await NotificationService.sendEmail({

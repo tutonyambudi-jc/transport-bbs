@@ -1,218 +1,141 @@
-import { notFound, redirect } from 'next/navigation'
+import React from 'react'
+import { notFound } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { formatCurrency, type DisplayCurrency } from '@/lib/utils'
-import { cookies } from 'next/headers'
 import Link from 'next/link'
+import { TicketList } from '@/components/TicketList'
 import { AdvertisementBanner } from '@/components/advertisements/AdvertisementBanner'
+
+// Helper function for currency formatting
+const formatCurrency = (amount: number, currency = 'XOF') => {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount)
+}
 
 export default async function BookingGroupConfirmationPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
-  
-  if (!session) {
-    redirect(`/auth/login?callbackUrl=${encodeURIComponent(`/booking-groups/${params.id}/confirmation`)}`)
-  }
 
   const bookingGroup = await prisma.bookingGroup.findUnique({
     where: { id: params.id },
     include: {
       bookings: {
         include: {
+          seat: true,
           trip: {
             include: {
               route: true,
               bus: true,
-            },
-          },
-          seat: true,
-        },
+            }
+          }
+        }
       },
-      payment: true,
-    },
+      payment: true
+    }
   })
 
+  // If not found, 404
   if (!bookingGroup) {
     notFound()
   }
 
-  // Vérifier que l'utilisateur a le droit de voir cette confirmation
-  if (bookingGroup.userId !== session.user.id && session.user.role !== 'ADMINISTRATOR') {
-    notFound()
-  }
+  const isPaid = bookingGroup.status === 'CONFIRMED' || bookingGroup.payment?.status === 'COMPLETED' || bookingGroup.payment?.status === 'PAID'
 
-  const cookieStore = await cookies()
-  const currency = (cookieStore.get('preferred_currency')?.value as DisplayCurrency) || 'FC'
-
-  const isPaid = bookingGroup.paymentStatus === 'PAID'
-
-  // Group bookings by trip
-  const tripGroups = bookingGroup.bookings.reduce((acc, booking) => {
-    const tripId = booking.trip.id
-    if (!acc[tripId]) {
-      acc[tripId] = {
-        trip: booking.trip,
-        bookings: [],
-      }
-    }
-    acc[tripId].bookings.push(booking)
-    return acc
-  }, {} as Record<string, { trip: any; bookings: any[] }>)
+  // Basic currency (could be dynamic based on trip)
+  const currency = 'XOF'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Success Message */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto space-y-8">
+
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-4xl font-extrabold text-blue-900 mb-2">Réservation Confirmée !</h1>
+          <p className="text-lg text-gray-600">
+            Votre voyage de <span className="font-semibold text-blue-700">{bookingGroup.bookings[0].trip.route.origin}</span> à <span className="font-semibold text-blue-700">{bookingGroup.bookings[0].trip.route.destination}</span> est prêt.
+          </p>
+        </div>
+
+        {/* Trip Summary & Tickets */}
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+          {/* Trip Summary Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  {bookingGroup.bookings[0].trip.route.origin}
+                  <span className="text-blue-300">➜</span>
+                  {bookingGroup.bookings[0].trip.route.destination}
+                </h2>
+                <div className="mt-2 flex flex-wrap gap-4 text-sm font-medium text-blue-100">
+                  <span className="flex items-center gap-1">
+                    📅 {format(new Date(bookingGroup.bookings[0].trip.departureTime), 'EEEE dd MMMM yyyy à HH:mm', { locale: fr })}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    🚌 {bookingGroup.bookings[0].trip.bus.name}
+                  </span>
+                </div>
+              </div>
+              <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-bold border border-white/30">
+                {bookingGroup.bookings.length} Billet{bookingGroup.bookings.length > 1 ? 's' : ''}
+              </div>
             </div>
-            <h1 className="text-4xl font-black text-gray-900 mb-2">
-              {isPaid ? 'Réservation confirmée !' : 'Réservation enregistrée !'}
-            </h1>
-            <p className="text-lg text-gray-600">
-              {isPaid 
-                ? `Vos ${bookingGroup.bookings.length} billet${bookingGroup.bookings.length > 1 ? 's sont' : ' est'} confirmé${bookingGroup.bookings.length > 1 ? 's' : ''}.`
-                : `Vos ${bookingGroup.bookings.length} billet${bookingGroup.bookings.length > 1 ? 's ont' : ' a'} été réservé${bookingGroup.bookings.length > 1 ? 's' : ''}. Vous devez effectuer le paiement en agence.`
-              }
-            </p>
           </div>
 
-          {/* Payment Alert for CASH */}
-          {!isPaid && bookingGroup.payment?.paymentDeadline && (
-            <div className="mb-8 p-6 bg-yellow-50 border-2 border-yellow-400 rounded-xl">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-yellow-900 mb-2">Paiement requis avant le {format(new Date(bookingGroup.payment.paymentDeadline), 'dd MMMM yyyy à HH:mm', { locale: fr })}</h3>
-                  <p className="text-yellow-800">
-                    Veuillez vous rendre en agence avec votre pièce d'identité pour effectuer le paiement de <span className="font-bold">{formatCurrency(bookingGroup.totalAmount, currency)}</span> et récupérer vos billets. Passé ce délai, votre réservation sera annulée.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Booking Details */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Détails de votre réservation</h2>
-            
-            {Object.values(tripGroups).map((group, idx) => (
-              <div key={idx} className="mb-8 last:mb-0">
-                <div className="p-6 bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl border-2 border-primary-200 mb-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                        {group.trip.route.origin} → {group.trip.route.destination}
-                      </h3>
-                      <p className="text-gray-700 font-semibold">
-                        📅 {format(new Date(group.trip.departureTime), 'EEEE dd MMMM yyyy à HH:mm', { locale: fr })}
-                      </p>
-                      <p className="text-gray-600">
-                        🚌 Bus: {group.trip.bus.name}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600">{group.bookings.length} passager{group.bookings.length > 1 ? 's' : ''}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Passenger List */}
-                <div className="space-y-3">
-                  {group.bookings.map((booking) => {
-                    const typeLabel = booking.passengerType === 'ADULT' ? '👨‍💼 Adulte'
-                      : booking.passengerType === 'CHILD' ? '👶 Enfant'
-                      : booking.passengerType === 'INFANT' ? '🍼 Bébé'
-                      : '👴 Senior'
-                    
-                    return (
-                      <div key={booking.id} className="p-4 border-2 border-gray-200 rounded-xl hover:border-primary-300 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-gray-900 text-lg">{booking.passengerName}</h4>
-                            <p className="text-sm text-gray-600">{typeLabel}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="px-3 py-1 bg-primary-600 text-white rounded-lg font-bold">
-                              Siège {booking.seat.seatNumber}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t">
-                          <div className="text-sm text-gray-600">
-                            Billet: <span className="font-mono font-bold text-gray-900">{booking.ticketNumber}</span>
-                          </div>
-                          <div className="font-bold text-gray-900">
-                            {formatCurrency(booking.totalPrice, currency)}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-
-            {/* Total */}
-            <div className="mt-8 pt-6 border-t-2 border-gray-300">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-gray-600 text-lg">Montant total</div>
-                  <div className="text-sm text-gray-500">{bookingGroup.bookings.length} billet{bookingGroup.bookings.length > 1 ? 's' : ''}</div>
-                </div>
-                <div className="text-4xl font-black text-primary-600">
-                  {formatCurrency(bookingGroup.totalAmount, currency)}
-                </div>
-              </div>
-            </div>
-
-            {isPaid && (
-              <div className="mt-6 p-4 bg-green-50 border-2 border-green-200 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="flex-1">
-                    <div className="font-bold text-green-900">Paiement confirmé</div>
-                    <div className="text-sm text-green-700">
-                      {bookingGroup.payment?.paidAt && `Payé le ${format(new Date(bookingGroup.payment.paidAt), 'dd MMMM yyyy à HH:mm', { locale: fr })}`}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Ticket List */}
+          <div className="p-6 bg-gray-50/50">
+            <TicketList bookings={bookingGroup.bookings} currency={currency} />
           </div>
 
-          {/* Advertisement */}
-          <AdvertisementBanner type="BANNER_CONFIRMATION" />
+          {/* Total & Status Footer */}
+          <div className="bg-white p-6 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div>
+                <div className="text-sm text-gray-500 uppercase tracking-wide font-semibold">Montant Total</div>
+                <div className="text-3xl font-black text-blue-900">{formatCurrency(bookingGroup.totalAmount, currency)}</div>
+              </div>
 
-          {/* Actions */}
-          <div className="flex justify-center gap-4 mt-8">
-            <Link
-              href="/dashboard"
-              className="px-8 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors"
-            >
-              Voir mes réservations
-            </Link>
-            <Link
-              href="/"
-              className="px-8 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors"
-            >
-              Nouvelle recherche
-            </Link>
+              {isPaid ? (
+                <div className="flex items-center gap-3 px-5 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <div>
+                    <div className="font-bold">Paiement confirmé</div>
+                    {bookingGroup.payment?.paidAt && (
+                      <div className="text-xs opacity-75">Le {format(new Date(bookingGroup.payment.paidAt), 'dd/MM/yyyy à HH:mm')}</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="px-5 py-3 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 font-bold">
+                  En attente de paiement
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Advertisement */}
+        <AdvertisementBanner type="BANNER_CONFIRMATION" />
+
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+          <Link
+            href="/dashboard"
+            className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            Voir mes réservations
+          </Link>
+          <Link
+            href="/"
+            className="px-8 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors text-center hover:border-gray-300"
+          >
+            Nouvelle recherche
+          </Link>
+        </div>
+
       </div>
     </div>
   )
 }
+// Force refresh

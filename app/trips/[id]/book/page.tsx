@@ -72,8 +72,16 @@ export default async function BookTripPage({
   const sp = await searchParams;
   const session = await getServerSession(authOptions)
 
+  // Build the full callback URL with passenger params
+  const passengerParams = new URLSearchParams({
+    adults: sp.adults || '1',
+    children: sp.children || '0',
+    babies: sp.babies || '0',
+    seniors: sp.seniors || '0'
+  }).toString()
+
   if (!session) {
-    redirect(`/auth/login?callbackUrl=${encodeURIComponent(`/trips/${id}/book`)}`)
+    redirect(`/auth/login?callbackUrl=${encodeURIComponent(`/trips/${id}/book?${passengerParams}`)}`)
   }
 
   // Get passenger counts from search params
