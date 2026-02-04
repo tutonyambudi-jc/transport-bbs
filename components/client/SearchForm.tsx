@@ -324,46 +324,169 @@ export function SearchForm() {
         </div>
       </div>
 
-      {/* Passengers Section - Inline compact */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      {/* Passengers Section - Responsive: dropdown on mobile, inline on desktop */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        {/* Mobile: Dropdown */}
+        <div className="lg:hidden" ref={passengerDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setShowPassengerDropdown(!showPassengerDropdown)}
+            className="w-full px-4 py-3.5 flex items-center justify-between tap-target"
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-sm font-medium text-gray-700">Passagers</span>
+              <span className="px-2.5 py-0.5 bg-primary-100 text-primary-700 rounded-full text-sm font-bold">{totalPassengers}</span>
+            </div>
+            <svg className={`w-5 h-5 text-gray-400 transition-transform ${showPassengerDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
-            <span className="text-sm font-medium text-gray-700">Passagers</span>
-            <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs font-bold">{totalPassengers}</span>
-          </div>
+          </button>
           
-          <div className="flex-1 grid grid-cols-4 gap-4">
-            <PassengerCounter
-              label="Adultes"
-              value={passengerCounts.adults}
-              onDecrement={() => setPassengerCounts(prev => ({ ...prev, adults: Math.max(0, prev.adults - 1) }))}
-              onIncrement={() => setPassengerCounts(prev => ({ ...prev, adults: Math.min(10, prev.adults + 1) }))}
-              color="text-primary-600"
-            />
-            <PassengerCounter
-              label="Enfants"
-              value={passengerCounts.children}
-              onDecrement={() => setPassengerCounts(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))}
-              onIncrement={() => setPassengerCounts(prev => ({ ...prev, children: Math.min(10, prev.children + 1) }))}
-              color="text-green-600"
-            />
-            <PassengerCounter
-              label="Bébés"
-              value={passengerCounts.babies}
-              onDecrement={() => setPassengerCounts(prev => ({ ...prev, babies: Math.max(0, prev.babies - 1) }))}
-              onIncrement={() => setPassengerCounts(prev => ({ ...prev, babies: Math.min(10, prev.babies + 1) }))}
-              color="text-pink-600"
-            />
-            <PassengerCounter
-              label="Seniors"
-              value={passengerCounts.seniors}
-              onDecrement={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.max(0, prev.seniors - 1) }))}
-              onIncrement={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.min(10, prev.seniors + 1) }))}
-              color="text-amber-600"
-            />
+          {showPassengerDropdown && (
+            <div className="border-t border-gray-100 px-4 py-3 space-y-3 animate-in slide-in-from-top-2">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-700">Adultes</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, adults: Math.max(0, prev.adults - 1) }))}
+                    disabled={passengerCounts.adults === 0}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.adults === 0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95'
+                    }`}
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center font-bold text-primary-600">{passengerCounts.adults}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, adults: Math.min(10, prev.adults + 1) }))}
+                    className="w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center bg-primary-600 text-white hover:bg-primary-700 active:scale-95 transition-all tap-target"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-700">Enfants (2-11 ans)</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))}
+                    disabled={passengerCounts.children === 0}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.children === 0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95'
+                    }`}
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center font-bold text-green-600">{passengerCounts.children}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, children: Math.min(10, prev.children + 1) }))}
+                    className="w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center bg-green-600 text-white hover:bg-green-700 active:scale-95 transition-all tap-target"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-700">Bébés (&lt; 2 ans)</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, babies: Math.max(0, prev.babies - 1) }))}
+                    disabled={passengerCounts.babies === 0}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.babies === 0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95'
+                    }`}
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center font-bold text-pink-600">{passengerCounts.babies}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, babies: Math.min(10, prev.babies + 1) }))}
+                    className="w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center bg-pink-600 text-white hover:bg-pink-700 active:scale-95 transition-all tap-target"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-700">Seniors (65+ ans)</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.max(0, prev.seniors - 1) }))}
+                    disabled={passengerCounts.seniors === 0}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.seniors === 0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95'
+                    }`}
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center font-bold text-amber-600">{passengerCounts.seniors}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.min(10, prev.seniors + 1) }))}
+                    className="w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center bg-amber-600 text-white hover:bg-amber-700 active:scale-95 transition-all tap-target"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: Inline */}
+        <div className="hidden lg:block px-4 py-3">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-sm font-medium text-gray-700">Passagers</span>
+              <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs font-bold">{totalPassengers}</span>
+            </div>
+            
+            <div className="flex-1 grid grid-cols-4 gap-4">
+              <PassengerCounter
+                label="Adultes"
+                value={passengerCounts.adults}
+                onDecrement={() => setPassengerCounts(prev => ({ ...prev, adults: Math.max(0, prev.adults - 1) }))}
+                onIncrement={() => setPassengerCounts(prev => ({ ...prev, adults: Math.min(10, prev.adults + 1) }))}
+                color="text-primary-600"
+              />
+              <PassengerCounter
+                label="Enfants"
+                value={passengerCounts.children}
+                onDecrement={() => setPassengerCounts(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))}
+                onIncrement={() => setPassengerCounts(prev => ({ ...prev, children: Math.min(10, prev.children + 1) }))}
+                color="text-green-600"
+              />
+              <PassengerCounter
+                label="Bébés"
+                value={passengerCounts.babies}
+                onDecrement={() => setPassengerCounts(prev => ({ ...prev, babies: Math.max(0, prev.babies - 1) }))}
+                onIncrement={() => setPassengerCounts(prev => ({ ...prev, babies: Math.min(10, prev.babies + 1) }))}
+                color="text-pink-600"
+              />
+              <PassengerCounter
+                label="Seniors"
+                value={passengerCounts.seniors}
+                onDecrement={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.max(0, prev.seniors - 1) }))}
+                onIncrement={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.min(10, prev.seniors + 1) }))}
+                color="text-amber-600"
+              />
+            </div>
           </div>
         </div>
       </div>

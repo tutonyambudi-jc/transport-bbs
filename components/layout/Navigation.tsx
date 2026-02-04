@@ -272,22 +272,27 @@ export function Navigation({ hideLinks = false }: NavigationProps) {
       {/* Mobile Menu Overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-white lg:hidden overflow-y-auto animate-in slide-in-from-top-10 fade-in duration-200">
-          <div className="p-4 space-y-6 mt-20">
+          <div className="p-4 space-y-6 mt-20 pb-safe">
+            {/* CurrencySelector visible on mobile */}
+            <div className="sm:hidden px-4">
+              <CurrencySelector />
+            </div>
+
             {!hideLinks && (
               <nav className="space-y-2">
-                <Link onClick={() => setMobileOpen(false)} href="/" className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-gray-50 text-lg font-semibold text-gray-900">
+                <Link onClick={() => setMobileOpen(false)} href="/" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl bg-gray-50 text-base font-semibold text-gray-900 tap-target active:scale-98 transition-transform">
                   <Home className="w-5 h-5 text-gray-500" /> Accueil
                 </Link>
-                <Link onClick={() => setMobileOpen(false)} href="/#search" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-lg font-semibold text-gray-600 hover:bg-gray-50">
+                <Link onClick={() => setMobileOpen(false)} href="/#search" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-base font-semibold text-gray-600 hover:bg-gray-50 tap-target active:scale-98 transition-all">
                   <Search className="w-5 h-5 text-gray-500" /> Organiser un voyage
                 </Link>
-                <Link onClick={() => setMobileOpen(false)} href="/reservations" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-lg font-semibold text-gray-600 hover:bg-gray-50">
+                <Link onClick={() => setMobileOpen(false)} href="/reservations" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-base font-semibold text-gray-600 hover:bg-gray-50 tap-target active:scale-98 transition-all">
                   <Briefcase className="w-5 h-5 text-gray-500" /> Mes Réservations
                 </Link>
-                <Link onClick={() => setMobileOpen(false)} href="/services" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-lg font-semibold text-gray-600 hover:bg-gray-50">
+                <Link onClick={() => setMobileOpen(false)} href="/services" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-base font-semibold text-gray-600 hover:bg-gray-50 tap-target active:scale-98 transition-all">
                   <Ticket className="w-5 h-5 text-gray-500" /> Services
                 </Link>
-                <Link onClick={() => setMobileOpen(false)} href="/contact" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-lg font-semibold text-gray-600 hover:bg-gray-50">
+                <Link onClick={() => setMobileOpen(false)} href="/contact" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-base font-semibold text-gray-600 hover:bg-gray-50 tap-target active:scale-98 transition-all">
                   <Phone className="w-5 h-5 text-gray-500" /> Contact
                 </Link>
               </nav>
@@ -296,10 +301,10 @@ export function Navigation({ hideLinks = false }: NavigationProps) {
             <div className="border-t border-gray-100 pt-6">
               <div className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-4">Espace Professionnel</div>
               <div className="grid grid-cols-2 gap-3">
-                <Link onClick={() => setMobileOpen(false)} href="/agent" className="flex flex-col items-center justify-center p-4 rounded-2xl bg-green-50 text-green-700 font-semibold gap-2">
+                <Link onClick={() => setMobileOpen(false)} href="/agent" className="flex flex-col items-center justify-center p-4 rounded-2xl bg-green-50 text-green-700 font-semibold gap-2 tap-target active:scale-95 transition-transform">
                   <User className="w-6 h-6" /> Agent
                 </Link>
-                <Link onClick={() => setMobileOpen(false)} href="/logistics" className="flex flex-col items-center justify-center p-4 rounded-2xl bg-orange-50 text-orange-700 font-semibold gap-2">
+                <Link onClick={() => setMobileOpen(false)} href="/logistics" className="flex flex-col items-center justify-center p-4 rounded-2xl bg-orange-50 text-orange-700 font-semibold gap-2 tap-target active:scale-95 transition-transform">
                   <Truck className="w-6 h-6" /> Logistique
                 </Link>
               </div>

@@ -93,6 +93,29 @@
     animation: shimmer 2s infinite;
   }
 
+  /* Hide scrollbar for carousel elements */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Touch-friendly tap targets */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile-optimized spacing */
+  @media (max-width: 640px) {
+    .mobile-compact {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
   @keyframes shimmer {
     0% {
       background-position: -200% 0;
@@ -101,7 +124,18 @@
       background-position: 200% 0;
     }
   }
+
+  /* Safe area for mobile devices */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Active scale effect for touch */
+  .active\:scale-98:active {
+    transform: scale(0.98);
+  }
+
+  .active\:scale-95:active {
+    transform: scale(0.95);
   }
 }
