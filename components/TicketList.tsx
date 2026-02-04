@@ -1,16 +1,15 @@
 "use client"
 import React from 'react'
 import { TicketCard } from './TicketCard'
+import { formatCurrency as formatCurrencyUtil, type DisplayCurrency } from '@/lib/utils'
 
 interface TicketListProps {
   bookings: any[]
-  currency: string
+  currency: DisplayCurrency
 }
 
 export function TicketList({ bookings, currency }: TicketListProps) {
-  const formatCurrency = (amount: number, curr = 'XOF') => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: curr }).format(amount)
-  }
+  const formatCurrency = (amount: number) => formatCurrencyUtil(amount, currency)
 
   return (
     <div className="space-y-3">

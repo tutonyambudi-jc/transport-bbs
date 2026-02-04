@@ -5,10 +5,11 @@ import { QrCode, User, Armchair, Calendar, Clock, MapPin, Ticket as TicketIcon }
 import * as QRCode from 'qrcode'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import type { DisplayCurrency } from '@/lib/utils'
 
 interface TicketCardProps {
   booking: any
-  currency: 'FC' | 'USD'
+  currency: DisplayCurrency
   formatCurrency: (amount: number) => string
 }
 

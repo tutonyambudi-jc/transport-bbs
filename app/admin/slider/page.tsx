@@ -1,14 +1,21 @@
 "use client";
 import { useEffect, useState } from 'react';
 
+type Slide = {
+  id: string;
+  src: string;
+  alt: string;
+  caption?: string | null;
+};
+
 export default function SliderAdminPage() {
-  const [slides, setSlides] = useState([]);
+  const [slides, setSlides] = useState<Slide[]>([]);
   const [newSlide, setNewSlide] = useState({ src: '', alt: '', caption: '' });
 
   useEffect(() => {
     async function fetchSlides() {
       const response = await fetch('/api/slider');
-      const data = await response.json();
+      const data = (await response.json()) as Slide[];
       setSlides(data);
     }
     fetchSlides();
@@ -20,12 +27,12 @@ export default function SliderAdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newSlide),
     });
-    const addedSlide = await response.json();
+    const addedSlide = (await response.json()) as Slide;
     setSlides((prev) => [...prev, addedSlide]);
     setNewSlide({ src: '', alt: '', caption: '' });
   }
 
-  async function handleDeleteSlide(id) {
+  async function handleDeleteSlide(id: string) {
     await fetch('/api/slider', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

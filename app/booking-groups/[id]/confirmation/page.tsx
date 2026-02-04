@@ -8,11 +8,7 @@ import { fr } from 'date-fns/locale'
 import Link from 'next/link'
 import { TicketList } from '@/components/TicketList'
 import { AdvertisementBanner } from '@/components/advertisements/AdvertisementBanner'
-
-// Helper function for currency formatting
-const formatCurrency = (amount: number, currency = 'XOF') => {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount)
-}
+import { formatCurrency, type DisplayCurrency } from '@/lib/utils'
 
 export default async function BookingGroupConfirmationPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -43,7 +39,7 @@ export default async function BookingGroupConfirmationPage({ params }: { params:
   const isPaid = bookingGroup.status === 'CONFIRMED' || bookingGroup.payment?.status === 'COMPLETED' || bookingGroup.payment?.status === 'PAID'
 
   // Basic currency (could be dynamic based on trip)
-  const currency = 'XOF'
+  const currency: DisplayCurrency = 'FC'
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
