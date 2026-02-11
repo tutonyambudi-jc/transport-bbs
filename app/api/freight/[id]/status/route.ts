@@ -5,9 +5,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> }
 ) {
-  const p = await params
+  const params = await props.params
+  const p = params
   try {
     const session = await getServerSession(authOptions)
 
