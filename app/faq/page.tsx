@@ -217,6 +217,7 @@ export default function FAQPage() {
               <ul className="space-y-2 text-gray-400">
                 <li><Link href="/trips/search" className="hover:text-white">Réservation</Link></li>
                 <li><Link href="/freight" className="hover:text-white">Transport de colis</Link></li>
+                <li><Link href="/calculateur-bagages" className="hover:text-white">Calculateur de bagages</Link></li>
               </ul>
             </div>
             <div>

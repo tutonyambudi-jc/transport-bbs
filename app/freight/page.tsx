@@ -131,6 +131,7 @@ export default function FreightPage() {
               <ul className="space-y-4 text-slate-400 text-sm">
                 <li><Link href="/trips/search" className="hover:text-white transition-colors">Réservation de billets</Link></li>
                 <li><Link href="/freight" className="hover:text-white transition-colors text-white font-bold">Transport de colis</Link></li>
+                <li><Link href="/calculateur-bagages" className="hover:text-white transition-colors">Calculateur de bagages</Link></li>
               </ul>
             </div>
             <div>

@@ -43,16 +43,16 @@ export function CurrencySelector() {
         const next = (e.target.value === 'USD' ? 'USD' : 'FC') as DisplayCurrency
         setCurrency(next)
         persistCurrency(next)
-        // Assure la mise à jour de toutes les pages (server + client)
         router.refresh()
         window.location.reload()
       }}
-      className="hidden md:block px-3 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 bg-white/70 backdrop-blur-sm hover:border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+      className="hidden md:block px-4 py-2 border-2 border-yellow-400 rounded-2xl text-base font-bold text-yellow-300 bg-gradient-to-br from-black via-gray-900 to-gray-800 shadow-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200 outline-none hover:border-yellow-300 hover:bg-gray-900/80"
       aria-label="Sélecteur de monnaie"
       title="Monnaie"
+      style={{ minWidth: 90, letterSpacing: 1 }}
     >
-      <option value="FC">FC</option>
-      <option value="USD">USD</option>
+      <option value="FC" className="bg-black text-yellow-300 font-bold">FC</option>
+      <option value="USD" className="bg-black text-yellow-300 font-bold">USD</option>
     </select>
   )
 }

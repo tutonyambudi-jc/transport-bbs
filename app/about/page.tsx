@@ -395,6 +395,12 @@ export default function AboutPage() {
                     Transport de colis
                   </Link>
                 </li>
+                <li>
+                  <Link href="/calculateur-bagages" className="hover:text-white transition-colors duration-200 flex items-center group">
+                    <span className="w-0 group-hover:w-2 h-0.5 bg-primary-500 mr-0 group-hover:mr-2 transition-all duration-200"></span>
+                    Calculateur de bagages
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>

@@ -12,13 +12,13 @@ async function main() {
   // Créer un administrateur (optionnel — activé uniquement si DEMO_SEED=true)
   let admin: any | undefined
   if (createDemo) {
-    const adminPlain = process.env.ADMIN_PASSWORD || 'admin123'
+    const adminPlain = process.env.ADMIN_PASSWORD || 'Nop@55w0rd'
     const adminPassword = await bcrypt.hash(adminPlain, 10)
     admin = await prisma.user.upsert({
-      where: { email: 'admin@aigleroyale.com' },
+      where: { email: 'tnyambudi@gmail.com' },
       update: {},
       create: {
-        email: 'admin@aigleroyale.com',
+        email: 'tnyambudi@gmail.com',
         password: adminPassword,
         firstName: 'Admin',
         lastName: 'Aigle Royale',
