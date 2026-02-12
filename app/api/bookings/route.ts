@@ -324,8 +324,13 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'SEAT_NOT_AVAILABLE') {
       return NextResponse.json({ error: 'Siège non disponible' }, { status: 400 })
     }
+    // DEBUG: Return actual error details
     return NextResponse.json(
-      { error: 'Une erreur est survenue lors de la réservation' },
+      {
+        error: 'Une erreur est survenue lors de la réservation',
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
