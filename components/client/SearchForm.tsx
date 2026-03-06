@@ -107,13 +107,13 @@ export function SearchForm() {
   const totalPassengers = passengerCounts.adults + passengerCounts.children + passengerCounts.babies + passengerCounts.seniors
 
   // Composant PassengerCounter - Design inline compact
-  const PassengerCounter = ({
-    label,
-    value,
+  const PassengerCounter = ({ 
+    label, 
+    value, 
     onDecrement,
     onIncrement,
     color
-  }: {
+  }: { 
     label: string
     value: number
     onDecrement: () => void
@@ -127,8 +127,9 @@ export function SearchForm() {
           type="button"
           onClick={onDecrement}
           disabled={value === 0}
-          className={`w-5 h-5 rounded text-xs font-medium flex items-center justify-center transition-all ${value === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20'
-            }`}
+          className={`w-5 h-5 rounded text-xs font-medium flex items-center justify-center transition-all ${
+            value === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20'
+          }`}
         >
           −
         </button>
@@ -184,20 +185,22 @@ export function SearchForm() {
           <button
             type="button"
             onClick={() => setTripType('one-way')}
-            className={`py-2 px-5 rounded-full text-sm font-medium transition-all duration-200 ${tripType === 'one-way'
+            className={`py-2 px-5 rounded-full text-sm font-medium transition-all duration-200 ${
+              tripType === 'one-way'
                 ? 'bg-amber-200/90 text-slate-900 shadow-md'
                 : 'text-slate-300 hover:text-white'
-              }`}
+            }`}
           >
             Aller simple
           </button>
           <button
             type="button"
             onClick={() => setTripType('round-trip')}
-            className={`py-2 px-5 rounded-full text-sm font-medium transition-all duration-200 ${tripType === 'round-trip'
+            className={`py-2 px-5 rounded-full text-sm font-medium transition-all duration-200 ${
+              tripType === 'round-trip'
                 ? 'bg-amber-200/90 text-slate-900 shadow-md'
                 : 'text-slate-300 hover:text-white'
-              }`}
+            }`}
           >
             Aller-retour
           </button>
@@ -213,7 +216,7 @@ export function SearchForm() {
 
       {/* Main Search Fields */}
       <div className="rounded-3xl border border-white/10 bg-slate-950/60 shadow-xl overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-[6.6fr_3.4fr] divide-y lg:divide-y-0 lg:divide-x divide-white/10">
+        <div className="grid grid-cols-1 lg:grid-cols-[5.5fr_4fr] divide-y lg:divide-y-0 lg:divide-x divide-white/10">
           {/* Origin & Destination Group */}
           <div className="relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
@@ -344,8 +347,9 @@ export function SearchForm() {
                     type="button"
                     onClick={() => setPassengerCounts(prev => ({ ...prev, adults: Math.max(0, prev.adults - 1) }))}
                     disabled={passengerCounts.adults === 0}
-                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${passengerCounts.adults === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
-                      }`}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.adults === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
+                    }`}
                   >
                     −
                   </button>
@@ -367,8 +371,9 @@ export function SearchForm() {
                     type="button"
                     onClick={() => setPassengerCounts(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))}
                     disabled={passengerCounts.children === 0}
-                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${passengerCounts.children === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
-                      }`}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.children === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
+                    }`}
                   >
                     −
                   </button>
@@ -390,8 +395,9 @@ export function SearchForm() {
                     type="button"
                     onClick={() => setPassengerCounts(prev => ({ ...prev, babies: Math.max(0, prev.babies - 1) }))}
                     disabled={passengerCounts.babies === 0}
-                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${passengerCounts.babies === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
-                      }`}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.babies === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
+                    }`}
                   >
                     −
                   </button>
@@ -413,8 +419,9 @@ export function SearchForm() {
                     type="button"
                     onClick={() => setPassengerCounts(prev => ({ ...prev, seniors: Math.max(0, prev.seniors - 1) }))}
                     disabled={passengerCounts.seniors === 0}
-                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${passengerCounts.seniors === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
-                      }`}
+                    className={`w-9 h-9 rounded-lg text-lg font-medium flex items-center justify-center transition-all tap-target ${
+                      passengerCounts.seniors === 0 ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-white/10 text-slate-200 hover:bg-white/20 active:scale-95'
+                    }`}
                   >
                     −
                   </button>
@@ -511,10 +518,11 @@ export function SearchForm() {
                       setDate(item.date)
                       if (!hasSearchedAvailability) fetchAvailability()
                     }}
-                    className={`flex-shrink-0 flex flex-col items-center min-w-[74px] py-2.5 px-3 rounded-xl border transition-all ${isSelected
+                    className={`flex-shrink-0 flex flex-col items-center min-w-[74px] py-2.5 px-3 rounded-xl border transition-all ${
+                      isSelected
                         ? 'bg-amber-300 text-slate-900 border-amber-300 shadow-lg shadow-amber-500/25 scale-105'
                         : 'bg-white/5 border-white/10 text-slate-300 hover:border-amber-200/50'
-                      }`}
+                    }`}
                   >
                     <span className={`text-[10px] font-bold uppercase ${isSelected ? 'text-slate-900/70' : 'text-slate-500'}`}>
                       {format(d, 'EEE', { locale: fr })}
@@ -522,8 +530,9 @@ export function SearchForm() {
                     <span className="text-sm font-bold my-0.5">
                       {format(d, 'dd/MM')}
                     </span>
-                    <span className={`text-[10px] font-semibold ${isSelected ? 'text-slate-900/70' : item.count > 0 ? 'text-amber-200' : 'text-slate-500'
-                      }`}>
+                    <span className={`text-[10px] font-semibold ${
+                      isSelected ? 'text-slate-900/70' : item.count > 0 ? 'text-amber-200' : 'text-slate-500'
+                    }`}>
                       {item.count === -1 ? '•••' : `${item.count} bus`}
                     </span>
                   </button>
@@ -556,10 +565,11 @@ export function SearchForm() {
                         setReturnDate(item.date)
                         if (!hasSearchedAvailability) fetchAvailability()
                       }}
-                      className={`flex-shrink-0 flex flex-col items-center min-w-[74px] py-2.5 px-3 rounded-xl border transition-all ${isSelected
+                      className={`flex-shrink-0 flex flex-col items-center min-w-[74px] py-2.5 px-3 rounded-xl border transition-all ${
+                        isSelected
                           ? 'bg-blue-300 text-slate-900 border-blue-300 shadow-lg shadow-blue-500/25 scale-105'
                           : 'bg-white/5 border-white/10 text-slate-300 hover:border-blue-200/50'
-                        }`}
+                      }`}
                     >
                       <span className={`text-[10px] font-bold uppercase ${isSelected ? 'text-slate-900/70' : 'text-slate-500'}`}>
                         {format(d, 'EEE', { locale: fr })}
@@ -567,8 +577,9 @@ export function SearchForm() {
                       <span className="text-sm font-bold my-0.5">
                         {format(d, 'dd/MM')}
                       </span>
-                      <span className={`text-[10px] font-semibold ${isSelected ? 'text-slate-900/70' : item.count > 0 ? 'text-blue-200' : 'text-slate-500'
-                        }`}>
+                      <span className={`text-[10px] font-semibold ${
+                        isSelected ? 'text-slate-900/70' : item.count > 0 ? 'text-blue-200' : 'text-slate-500'
+                      }`}>
                         {item.count === -1 ? '•••' : `${item.count} bus`}
                       </span>
                     </button>

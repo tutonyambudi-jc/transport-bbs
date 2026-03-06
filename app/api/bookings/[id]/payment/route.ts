@@ -19,9 +19,9 @@ function getTier(points: number): string {
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  const p = await params
+  const p = params
   try {
     const session = await getServerSession(authOptions)
 

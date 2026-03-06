@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(
   request: NextRequest,
-  props: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -26,8 +26,7 @@ export async function POST(
       )
     }
 
-    const params = await props.params
-    const { id } = params
+    const { id } = context.params
 
     const bookingGroup = await prisma.bookingGroup.findUnique({
       where: { id },

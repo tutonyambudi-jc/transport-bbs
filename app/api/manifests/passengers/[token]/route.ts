@@ -12,7 +12,7 @@ function parseYmdToLocalDate(ymd: string | null): Date | null {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const p = await params
+  const p = params
   try {
     const token = p.token
     if (!token) return NextResponse.json({ error: 'Token manquant' }, { status: 400 })
