@@ -1,66 +1,33 @@
-import { notFound, redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { GroupPaymentForm } from '@/components/client/GroupPaymentForm'
-import type { DisplayCurrency } from '@/lib/utils'
-import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
 
-export default async function BookingGroupPaymentPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  
-  if (!session) {
-    redirect(`/auth/login?callbackUrl=${encodeURIComponent(`/booking-groups/${params.id}/payment`)}`)
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params
+
+    const bookingGroup = await prisma.bookingGroup.findUnique({
+      where: { id }
+    })
+
+    if (!bookingGroup) {
+      return NextResponse.json(
+        { error: "Booking group not found" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      bookingGroup
+    })
+
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Payment processing failed" },
+      { status: 500 }
+    )
   }
-
-  const bookingGroup = await prisma.bookingGroup.findUnique({
-    where: { id: params.id },
-    include: {
-      bookings: {
-        include: {
-          trip: {
-            include: {
-              route: true,
-              bus: true,
-            },
-          },
-          seat: true,
-          user: true,
-        },
-      },
-      payment: true,
-    },
-  })
-
-  if (!bookingGroup) {
-    notFound()
-  }
-
-  // Vérifier que l'utilisateur a le droit de voir ce paiement
-  if (bookingGroup.userId !== session.user.id && session.user.role !== 'ADMINISTRATOR') {
-    notFound()
-  }
-
-  // Si déjà payé, rediriger vers la confirmation
-  if (bookingGroup.paymentStatus === 'PAID') {
-    redirect(`/booking-groups/${params.id}/confirmation`)
-  }
-
-  const cookieStore = await cookies()
-  const currency = (cookieStore.get('preferred_currency')?.value as DisplayCurrency) || 'FC'
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Paiement de votre réservation</h1>
-          
-          <GroupPaymentForm 
-            bookingGroup={bookingGroup} 
-            displayCurrency={currency}
-          />
-        </div>
-      </div>
-    </div>
-  )
 }
