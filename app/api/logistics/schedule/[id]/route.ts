@@ -9,7 +9,7 @@ function parseDate(input: string | null): Date | null {
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const p = params
+  const p = await params
   try {
     const auth = await requireLogisticsSession()
     if (!auth.ok) return auth.response
